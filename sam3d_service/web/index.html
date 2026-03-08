@@ -34,14 +34,14 @@
       }
 
       .shell {
-        width: min(1180px, calc(100vw - 32px));
-        margin: 32px auto;
+        width: min(1320px, calc(100vw - 20px));
+        margin: 18px auto 24px;
       }
 
       .hero {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr;
-        gap: 20px;
+        gap: 14px;
         align-items: stretch;
       }
 
@@ -56,25 +56,25 @@
       .headline,
       .panel,
       .status-board {
-        padding: 24px;
+        padding: 18px;
       }
 
       .eyebrow {
         display: inline-flex;
         gap: 8px;
-        padding: 8px 12px;
+        padding: 6px 10px;
         border-radius: 999px;
         background: rgba(14, 122, 98, 0.08);
         color: var(--accent-strong);
-        font-size: 13px;
+        font-size: 11px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       h1 {
-        margin: 18px 0 12px;
-        font-size: clamp(34px, 6vw, 58px);
-        line-height: 0.94;
+        margin: 12px 0 10px;
+        font-size: clamp(26px, 4vw, 42px);
+        line-height: 1;
         letter-spacing: -0.04em;
       }
 
@@ -82,8 +82,8 @@
         margin: 0;
         max-width: 36rem;
         color: var(--muted);
-        font-size: 17px;
-        line-height: 1.65;
+        font-size: 14px;
+        line-height: 1.55;
       }
 
       .status-board {
@@ -97,9 +97,9 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
+        padding: 7px 11px;
         border-radius: 999px;
-        font-size: 14px;
+        font-size: 13px;
         background: rgba(24, 33, 30, 0.06);
         color: var(--ink);
       }
@@ -142,15 +142,15 @@
 
       .tab-strip {
         display: flex;
-        gap: 12px;
+        gap: 10px;
         flex-wrap: wrap;
-        margin: 22px 0 18px;
+        margin: 14px 0 14px;
       }
 
       .tab-button {
         border: none;
         border-radius: 999px;
-        padding: 12px 18px;
+        padding: 10px 16px;
         font: inherit;
         cursor: pointer;
         color: var(--ink);
@@ -178,23 +178,23 @@
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 20px;
+        gap: 14px;
+        margin-bottom: 14px;
       }
 
       .section-title {
-        margin: 0 0 14px;
-        font-size: 22px;
+        margin: 0 0 10px;
+        font-size: 18px;
       }
 
       .field {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
 
       .field label {
         display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
+        margin-bottom: 6px;
+        font-size: 13px;
         color: var(--muted);
       }
 
@@ -203,30 +203,30 @@
         width: 100%;
         border: 1px solid var(--line);
         border-radius: 14px;
-        padding: 12px 14px;
+        padding: 10px 12px;
         background: rgba(255, 255, 255, 0.66);
         font: inherit;
         color: inherit;
       }
 
       .note {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--muted);
-        line-height: 1.6;
+        line-height: 1.45;
       }
 
       .actions {
         display: flex;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
-        margin-top: 20px;
+        margin-top: 14px;
         flex-wrap: wrap;
       }
 
       button.action {
         border: none;
         border-radius: 999px;
-        padding: 12px 18px;
+        padding: 10px 16px;
         font: inherit;
         cursor: pointer;
         transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
@@ -255,11 +255,11 @@
       .preview-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 10px;
       }
 
       .preview {
-        border-radius: 18px;
+        border-radius: 16px;
         overflow: hidden;
         border: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.6);
@@ -267,8 +267,8 @@
 
       .preview strong {
         display: block;
-        padding: 12px 14px;
-        font-size: 13px;
+        padding: 10px 12px;
+        font-size: 12px;
         letter-spacing: 0.05em;
         text-transform: uppercase;
         color: var(--muted);
@@ -288,7 +288,7 @@
           linear-gradient(-45deg, rgba(24, 33, 30, 0.04) 25%, transparent 25%),
           linear-gradient(45deg, transparent 75%, rgba(24, 33, 30, 0.04) 75%),
           linear-gradient(-45deg, transparent 75%, rgba(24, 33, 30, 0.04) 75%);
-        background-size: 20px 20px;
+        background-size: 16px 16px;
         background-position: 0 0, 0 10px, 10px -10px, -10px 0;
       }
 
@@ -298,8 +298,8 @@
 
       .marker {
         position: absolute;
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
         border-radius: 999px;
         border: 2px solid #f8f6ef;
         background: rgba(14, 122, 98, 0.8);
@@ -314,21 +314,53 @@
       }
 
       .log {
-        min-height: 128px;
-        padding: 14px;
-        border-radius: 16px;
+        min-height: 96px;
+        padding: 12px;
+        border-radius: 14px;
         border: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.68);
         color: var(--muted);
-        line-height: 1.6;
+        line-height: 1.5;
         white-space: pre-wrap;
         word-break: break-word;
+      }
+
+      .progress-block {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .progress-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+
+      .progress-track {
+        width: 100%;
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(24, 33, 30, 0.08);
+      }
+
+      .progress-fill {
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), #2ca987);
+        transition: width 220ms ease;
       }
 
       .meta {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
       }
 
       .result-links,
@@ -360,8 +392,8 @@
 
       .mask-chip,
       .object-card {
-        padding: 12px 14px;
-        border-radius: 16px;
+        padding: 10px 12px;
+        border-radius: 14px;
         border: 1px solid var(--line);
         background: rgba(255, 255, 255, 0.68);
       }
@@ -376,6 +408,80 @@
         margin-top: 8px;
       }
 
+      .media-viewer {
+        display: grid;
+        gap: 10px;
+      }
+
+      .media-switcher {
+        display: inline-flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .media-switcher button {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(24, 33, 30, 0.08);
+        color: var(--muted);
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .media-switcher button.active {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .media-switcher button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .media-stage {
+        position: relative;
+        min-height: 320px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.68);
+      }
+
+      .media-card {
+        display: none;
+      }
+
+      .media-card.active {
+        display: block;
+      }
+
+      .media-card img,
+      .media-card video {
+        display: block;
+        width: 100%;
+        min-height: 320px;
+        max-height: 420px;
+        object-fit: contain;
+        background:
+          linear-gradient(45deg, rgba(24, 33, 30, 0.03) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(24, 33, 30, 0.03) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(24, 33, 30, 0.03) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(24, 33, 30, 0.03) 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      }
+
+      .media-placeholder {
+        display: grid;
+        place-items: center;
+        min-height: 320px;
+        padding: 18px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.5;
+      }
+
       @media (max-width: 900px) {
         .hero,
         .grid,
@@ -385,14 +491,14 @@
         }
 
         .shell {
-          width: min(100vw - 20px, 1180px);
-          margin: 16px auto 28px;
+          width: min(100vw - 12px, 1320px);
+          margin: 10px auto 18px;
         }
 
         .headline,
         .status-board,
         .panel {
-          padding: 18px;
+          padding: 14px;
         }
       }
     </style>
@@ -480,6 +586,15 @@
         <section class="grid">
           <section class="card panel">
             <h2 class="section-title">Status</h2>
+            <div class="progress-block">
+              <div class="progress-head">
+                <span id="singleStageLabel">Idle</span>
+                <span id="singleProgressValue">0%</span>
+              </div>
+              <div class="progress-track">
+                <div id="singleProgressBar" class="progress-fill"></div>
+              </div>
+            </div>
             <div id="singleStatusLog" class="log">Ready.</div>
           </section>
           <section class="card panel">
@@ -491,10 +606,19 @@
                 <div class="meta-card"><span>Rotation</span><div id="singleRotationValue" class="muted">-</div></div>
                 <div class="meta-card"><span>Timing</span><div id="singleTimingValue" class="muted">-</div></div>
               </div>
-              <div class="preview">
-                <strong>Official-style Render</strong>
-                <div class="preview-shell">
-                  <img id="singleRenderPreview" alt="Single object rendered preview" />
+              <div class="media-viewer">
+                <div id="singleMediaSwitcher" class="media-switcher">
+                  <button id="singleMediaGifButton" type="button">GIF</button>
+                  <button id="singleMediaVideoButton" type="button">Video</button>
+                </div>
+                <div class="media-stage">
+                  <div id="singleMediaGifCard" class="media-card">
+                    <img id="singleRenderPreview" alt="Single object rendered preview" />
+                  </div>
+                  <div id="singleMediaVideoCard" class="media-card">
+                    <video id="singleRenderVideo" controls playsinline muted loop></video>
+                  </div>
+                  <div id="singleMediaPlaceholder" class="media-placeholder">GIF 和视频渲染结果会显示在这里。</div>
                 </div>
               </div>
               <div id="singleResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
@@ -563,6 +687,15 @@
         <section class="grid">
           <section class="card panel">
             <h2 class="section-title">Status</h2>
+            <div class="progress-block">
+              <div class="progress-head">
+                <span id="sceneStageLabel">Idle</span>
+                <span id="sceneProgressValue">0%</span>
+              </div>
+              <div class="progress-track">
+                <div id="sceneProgressBar" class="progress-fill"></div>
+              </div>
+            </div>
             <div id="sceneStatusLog" class="log">Ready.</div>
           </section>
           <section class="card panel">
@@ -572,10 +705,19 @@
                 <div class="meta-card"><span>Objects</span><div id="sceneObjectCount" class="muted">-</div></div>
                 <div class="meta-card"><span>Timing</span><div id="sceneTimingValue" class="muted">-</div></div>
               </div>
-              <div class="preview">
-                <strong>Official-style Render</strong>
-                <div class="preview-shell">
-                  <img id="sceneRenderPreview" alt="Scene rendered preview" />
+              <div class="media-viewer">
+                <div id="sceneMediaSwitcher" class="media-switcher">
+                  <button id="sceneMediaGifButton" type="button">GIF</button>
+                  <button id="sceneMediaVideoButton" type="button">Video</button>
+                </div>
+                <div class="media-stage">
+                  <div id="sceneMediaGifCard" class="media-card">
+                    <img id="sceneRenderPreview" alt="Scene rendered preview" />
+                  </div>
+                  <div id="sceneMediaVideoCard" class="media-card">
+                    <video id="sceneRenderVideo" controls playsinline muted loop></video>
+                  </div>
+                  <div id="sceneMediaPlaceholder" class="media-placeholder">Scene GIF 和视频会显示在这里。</div>
                 </div>
               </div>
               <div id="sceneObjectList" class="object-list"><span class="muted">No scene objects yet.</span></div>
@@ -641,6 +783,15 @@
         <section class="grid">
           <section class="card panel">
             <h2 class="section-title">Status</h2>
+            <div class="progress-block">
+              <div class="progress-head">
+                <span id="alignmentStageLabel">Idle</span>
+                <span id="alignmentProgressValue">0%</span>
+              </div>
+              <div class="progress-track">
+                <div id="alignmentProgressBar" class="progress-fill"></div>
+              </div>
+            </div>
             <div id="alignmentStatusLog" class="log">Ready.</div>
           </section>
           <section class="card panel">
@@ -700,7 +851,16 @@
         clickHint: document.getElementById("singleClickHint"),
         statusLog: document.getElementById("singleStatusLog"),
         resultLinks: document.getElementById("singleResultLinks"),
+        progressBar: document.getElementById("singleProgressBar"),
+        progressValue: document.getElementById("singleProgressValue"),
+        stageLabel: document.getElementById("singleStageLabel"),
         renderPreview: document.getElementById("singleRenderPreview"),
+        renderVideo: document.getElementById("singleRenderVideo"),
+        mediaGifButton: document.getElementById("singleMediaGifButton"),
+        mediaVideoButton: document.getElementById("singleMediaVideoButton"),
+        mediaGifCard: document.getElementById("singleMediaGifCard"),
+        mediaVideoCard: document.getElementById("singleMediaVideoCard"),
+        mediaPlaceholder: document.getElementById("singleMediaPlaceholder"),
         translation: document.getElementById("singleTranslationValue"),
         rotation: document.getElementById("singleRotationValue"),
         scale: document.getElementById("singleScaleValue"),
@@ -721,7 +881,16 @@
         clickHint: document.getElementById("sceneClickHint"),
         statusLog: document.getElementById("sceneStatusLog"),
         resultLinks: document.getElementById("sceneResultLinks"),
+        progressBar: document.getElementById("sceneProgressBar"),
+        progressValue: document.getElementById("sceneProgressValue"),
+        stageLabel: document.getElementById("sceneStageLabel"),
         renderPreview: document.getElementById("sceneRenderPreview"),
+        renderVideo: document.getElementById("sceneRenderVideo"),
+        mediaGifButton: document.getElementById("sceneMediaGifButton"),
+        mediaVideoButton: document.getElementById("sceneMediaVideoButton"),
+        mediaGifCard: document.getElementById("sceneMediaGifCard"),
+        mediaVideoCard: document.getElementById("sceneMediaVideoCard"),
+        mediaPlaceholder: document.getElementById("sceneMediaPlaceholder"),
         objectList: document.getElementById("sceneObjectList"),
         objectCount: document.getElementById("sceneObjectCount"),
         timing: document.getElementById("sceneTimingValue"),
@@ -745,6 +914,9 @@
         clickHint: document.getElementById("alignmentClickHint"),
         statusLog: document.getElementById("alignmentStatusLog"),
         resultLinks: document.getElementById("alignmentResultLinks"),
+        progressBar: document.getElementById("alignmentProgressBar"),
+        progressValue: document.getElementById("alignmentProgressValue"),
+        stageLabel: document.getElementById("alignmentStageLabel"),
         scaleFactor: document.getElementById("alignmentScaleFactor"),
         focalValue: document.getElementById("alignmentFocalValue"),
         targetPoints: document.getElementById("alignmentTargetPoints"),
@@ -760,8 +932,14 @@
         serviceInfo.textContent = details;
       }
 
-      function setCurrentJob(jobId, status) {
-        jobInfo.textContent = jobId ? `${jobId} (${status})` : "No job submitted";
+      function setCurrentJob(jobId, status, stage = null, progress = null) {
+        if (!jobId) {
+          jobInfo.textContent = "No job submitted";
+          return;
+        }
+        const stageText = stage ? ` / ${humanizeStage(stage)}` : "";
+        const progressText = progress !== null && progress !== undefined ? ` / ${Number(progress).toFixed(0)}%` : "";
+        jobInfo.textContent = `${jobId} (${status}${stageText}${progressText})`;
       }
 
       function setTab(tabId) {
@@ -944,33 +1122,98 @@
           .join("");
       }
 
-      function renderGifPreview(imgEl, result) {
+      function humanizeStage(stage) {
+        if (!stage) {
+          return "Idle";
+        }
+        return stage
+          .split("_")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+      }
+
+      function setProgress(els, progress = 0, stage = "idle", message = "Ready.") {
+        const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+        els.progressBar.style.width = `${safeProgress}%`;
+        els.progressValue.textContent = `${safeProgress.toFixed(0)}%`;
+        els.stageLabel.textContent = humanizeStage(stage);
+        if (message) {
+          logMessage(els.statusLog, message);
+        }
+      }
+
+      function clearVideo(videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+      }
+
+      function activateMediaView(els, mode) {
+        const showGif = mode === "gif";
+        els.mediaGifCard.classList.toggle("active", showGif);
+        els.mediaVideoCard.classList.toggle("active", !showGif);
+        els.mediaGifButton.classList.toggle("active", showGif);
+        els.mediaVideoButton.classList.toggle("active", !showGif);
+      }
+
+      function renderMediaPanel(els, result) {
         const gifUrl = result?.artifacts?.preview_gif;
-        if (!gifUrl) {
-          clearElementImage(imgEl);
+        const videoUrl = result?.artifacts?.preview_video;
+
+        if (gifUrl) {
+          els.renderPreview.src = gifUrl;
+        } else {
+          clearElementImage(els.renderPreview);
+        }
+
+        if (videoUrl) {
+          els.renderVideo.src = videoUrl;
+          els.renderVideo.load();
+        } else {
+          clearVideo(els.renderVideo);
+        }
+
+        els.mediaGifButton.disabled = !gifUrl;
+        els.mediaVideoButton.disabled = !videoUrl;
+        const hasMedia = Boolean(gifUrl || videoUrl);
+        els.mediaPlaceholder.style.display = hasMedia ? "none" : "grid";
+
+        if (!hasMedia) {
+          els.mediaGifCard.classList.remove("active");
+          els.mediaVideoCard.classList.remove("active");
+          els.mediaGifButton.classList.remove("active");
+          els.mediaVideoButton.classList.remove("active");
           return;
         }
-        imgEl.src = gifUrl;
+
+        if (videoUrl) {
+          activateMediaView(els, "video");
+          return;
+        }
+        activateMediaView(els, "gif");
       }
 
       function resetSingleResult() {
+        setProgress(singleEls, 0, "idle", "Ready.");
         singleEls.translation.textContent = "-";
         singleEls.rotation.textContent = "-";
         singleEls.scale.textContent = "-";
         singleEls.timing.textContent = "-";
-        clearElementImage(singleEls.renderPreview);
+        renderMediaPanel(singleEls, null);
         singleEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
       }
 
       function resetSceneResult() {
+        setProgress(sceneEls, 0, "idle", "Ready.");
         sceneEls.objectCount.textContent = "-";
         sceneEls.timing.textContent = "-";
         sceneEls.objectList.innerHTML = '<span class="muted">No scene objects yet.</span>';
-        clearElementImage(sceneEls.renderPreview);
+        renderMediaPanel(sceneEls, null);
         sceneEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
       }
 
       function resetAlignmentResult() {
+        setProgress(alignmentEls, 0, "idle", "Ready.");
         alignmentEls.scaleFactor.textContent = "-";
         alignmentEls.focalValue.textContent = "-";
         alignmentEls.targetPoints.textContent = "-";
@@ -985,9 +1228,10 @@
         singleEls.scale.textContent = formatList(result.scale);
         const timings = result.timings || {};
         singleEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s render=${timings.render_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
-        renderGifPreview(singleEls.renderPreview, result);
+        renderMediaPanel(singleEls, result);
         renderArtifactLinks(singleEls.resultLinks, result, [
           { label: "Open GIF", href: result.artifacts.preview_gif, className: "" },
+          { label: "Open Video", href: result.artifacts.preview_video, className: "" },
           { label: "Download PLY", href: result.artifacts.result_ply, className: "" },
           { label: "Download JSON", href: result.artifacts.result_json, className: "" },
         ]);
@@ -997,7 +1241,7 @@
         const timings = result.timings || {};
         sceneEls.objectCount.textContent = `${result.objects?.length || 0}`;
         sceneEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s render=${timings.render_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
-        renderGifPreview(sceneEls.renderPreview, result);
+        renderMediaPanel(sceneEls, result);
         const objects = result.objects || [];
         if (!objects.length) {
           sceneEls.objectList.innerHTML = '<span class="muted">No per-object outputs recorded.</span>';
@@ -1021,6 +1265,7 @@
         }
         renderArtifactLinks(sceneEls.resultLinks, result, [
           { label: "Open GIF", href: result.artifacts.preview_gif, className: "" },
+          { label: "Open Video", href: result.artifacts.preview_video, className: "" },
           { label: "Download Scene PLY", href: result.artifacts.result_ply, className: "" },
           { label: "Download JSON", href: result.artifacts.result_json, className: "" },
         ]);
@@ -1040,7 +1285,7 @@
         ]);
       }
 
-      function startPolling(stateObj, jobId, renderResult, logEl) {
+      function startPolling(stateObj, jobId, renderResult, els) {
         if (stateObj.pollTimer) {
           clearInterval(stateObj.pollTimer);
         }
@@ -1051,9 +1296,14 @@
             if (!res.ok) {
               throw new Error(data.detail || "Failed to fetch job status.");
             }
-            setCurrentJob(data.job_id, data.status);
+            setCurrentJob(data.job_id, data.status, data.stage, data.progress);
+            setProgress(
+              els,
+              data.progress,
+              data.stage || data.status,
+              data.message || `Job ${data.job_id} is ${data.status}.`,
+            );
             if (data.status === "queued" || data.status === "running") {
-              logMessage(logEl, `Job ${data.job_id} is ${data.status}.`);
               return;
             }
             if (stateObj.pollTimer) {
@@ -1061,17 +1311,17 @@
               stateObj.pollTimer = null;
             }
             if (data.status === "failed") {
-              logMessage(logEl, `Job failed: ${data.error || "Unknown error"}`);
+              logMessage(els.statusLog, `Job failed: ${data.error || "Unknown error"}`);
               return;
             }
             renderResult(data.result);
-            logMessage(logEl, `Job ${data.job_id} finished successfully.`);
+            setProgress(els, 100, "completed", `Job ${data.job_id} finished successfully.`);
           } catch (error) {
-            logMessage(logEl, String(error));
+            logMessage(els.statusLog, String(error));
           }
         };
         poll();
-        stateObj.pollTimer = setInterval(poll, 5000);
+        stateObj.pollTimer = setInterval(poll, 2000);
       }
 
       function stopPolling(stateObj) {
@@ -1196,15 +1446,16 @@
 
         singleEls.submitButton.disabled = true;
         resetSingleResult();
-        logMessage(singleEls.statusLog, "Submitting single-object job...");
+        setProgress(singleEls, 2, "submitting", "Submitting single-object job...");
         try {
           const res = await fetch("/jobs", { method: "POST", body: formData });
           const data = await res.json();
           if (!res.ok) {
             throw new Error(data.detail || "Failed to submit job.");
           }
-          setCurrentJob(data.job_id, data.status);
-          startPolling(singleState, data.job_id, renderSingleResult, singleEls.statusLog);
+          setCurrentJob(data.job_id, data.status, "queued", 4);
+          setProgress(singleEls, 4, "queued", `Job ${data.job_id} queued.`);
+          startPolling(singleState, data.job_id, renderSingleResult, singleEls);
         } catch (error) {
           logMessage(singleEls.statusLog, String(error));
         } finally {
@@ -1303,15 +1554,16 @@
 
         sceneEls.submitButton.disabled = true;
         resetSceneResult();
-        logMessage(sceneEls.statusLog, `Submitting scene job with ${sceneState.queuedMasks.length} mask(s)...`);
+        setProgress(sceneEls, 2, "submitting", `Submitting scene job with ${sceneState.queuedMasks.length} mask(s)...`);
         try {
           const res = await fetch("/scene-jobs", { method: "POST", body: formData });
           const data = await res.json();
           if (!res.ok) {
             throw new Error(data.detail || "Failed to submit scene job.");
           }
-          setCurrentJob(data.job_id, data.status);
-          startPolling(sceneState, data.job_id, renderSceneResult, sceneEls.statusLog);
+          setCurrentJob(data.job_id, data.status, "queued", 4);
+          setProgress(sceneEls, 4, "queued", `Job ${data.job_id} queued.`);
+          startPolling(sceneState, data.job_id, renderSceneResult, sceneEls);
         } catch (error) {
           logMessage(sceneEls.statusLog, String(error));
         } finally {
@@ -1402,15 +1654,16 @@
 
         alignmentEls.submitButton.disabled = true;
         resetAlignmentResult();
-        logMessage(alignmentEls.statusLog, "Submitting alignment job...");
+        setProgress(alignmentEls, 2, "submitting", "Submitting alignment job...");
         try {
           const res = await fetch("/alignment-jobs", { method: "POST", body: formData });
           const data = await res.json();
           if (!res.ok) {
             throw new Error(data.detail || "Failed to submit alignment job.");
           }
-          setCurrentJob(data.job_id, data.status);
-          startPolling(alignmentState, data.job_id, renderAlignmentResult, alignmentEls.statusLog);
+          setCurrentJob(data.job_id, data.status, "queued", 4);
+          setProgress(alignmentEls, 4, "queued", `Job ${data.job_id} queued.`);
+          startPolling(alignmentState, data.job_id, renderAlignmentResult, alignmentEls);
         } catch (error) {
           logMessage(alignmentEls.statusLog, String(error));
         } finally {
@@ -1427,6 +1680,11 @@
         logMessage(alignmentEls.statusLog, "Generated mask cleared.");
       });
       alignmentEls.resetButton.addEventListener("click", resetAlignmentForm);
+
+      singleEls.mediaGifButton.addEventListener("click", () => activateMediaView(singleEls, "gif"));
+      singleEls.mediaVideoButton.addEventListener("click", () => activateMediaView(singleEls, "video"));
+      sceneEls.mediaGifButton.addEventListener("click", () => activateMediaView(sceneEls, "gif"));
+      sceneEls.mediaVideoButton.addEventListener("click", () => activateMediaView(sceneEls, "video"));
 
       document.querySelectorAll(".tab-button").forEach((button) => {
         button.addEventListener("click", () => setTab(button.dataset.tab));

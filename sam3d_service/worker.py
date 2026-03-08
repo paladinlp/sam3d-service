@@ -50,7 +50,11 @@ class InferenceWorker:
         self.store.mark_running(job_id)
         try:
             job = self.store.read_job(job_id)
-            result = self.runner.run_job(self.store.job_dir(job_id), job)
+            result = self.runner.run_job(
+                self.store.job_dir(job_id),
+                job,
+                progress_callback=lambda **kwargs: self.store.update_progress(job_id, **kwargs),
+            )
             result.setdefault("timings", {})["total_seconds"] = round(
                 time.perf_counter() - started,
                 3,

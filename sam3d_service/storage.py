@@ -18,6 +18,7 @@ FOCAL_LENGTH_JSON_NAME = "focal_length.json"
 RESULT_PLY_NAME = "result.ply"
 PREVIEW_PLY_NAME = "preview.ply"
 PREVIEW_GIF_NAME = "preview.gif"
+PREVIEW_VIDEO_NAME = "preview.mp4"
 SCENE_RESULT_PLY_NAME = "scene_result.ply"
 ALIGNMENT_RESULT_PLY_NAME = "aligned_mesh.ply"
 ERROR_NAME = "error.txt"
@@ -65,6 +66,9 @@ class JobStore:
             "job_id": job_id,
             "kind": kind,
             "status": "queued",
+            "progress": 0.0,
+            "stage": "queued",
+            "message": "Waiting for worker.",
             "error": None,
             "seed": int(seed) if seed is not None else None,
             "created_at": utc_now(),
@@ -86,7 +90,27 @@ class JobStore:
         meta = self.read_job(job_id)
         meta["status"] = "running"
         meta["error"] = None
+        meta["progress"] = max(float(meta.get("progress", 0.0)), 2.0)
+        meta["stage"] = "starting"
+        meta["message"] = "Preparing inputs."
         meta["started_at"] = utc_now()
+        self._write_json(self.job_dir(job_id) / JOB_META_NAME, meta)
+
+    def update_progress(
+        self,
+        job_id: str,
+        *,
+        progress: float | None = None,
+        stage: str | None = None,
+        message: str | None = None,
+    ) -> None:
+        meta = self.read_job(job_id)
+        if progress is not None:
+            meta["progress"] = round(min(max(float(progress), 0.0), 100.0), 1)
+        if stage is not None:
+            meta["stage"] = stage
+        if message is not None:
+            meta["message"] = message
         self._write_json(self.job_dir(job_id) / JOB_META_NAME, meta)
 
     def mark_succeeded(self, job_id: str, result: dict[str, Any]) -> None:
@@ -94,6 +118,9 @@ class JobStore:
         meta = self.read_job(job_id)
         meta["status"] = "succeeded"
         meta["error"] = None
+        meta["progress"] = 100.0
+        meta["stage"] = "completed"
+        meta["message"] = "Artifacts are ready."
         meta["finished_at"] = utc_now()
         self._write_json(self.job_dir(job_id) / JOB_META_NAME, meta)
 
@@ -102,6 +129,8 @@ class JobStore:
         (job_dir / ERROR_NAME).write_text(error_message, encoding="utf-8")
         meta = self.read_job(job_id)
         meta["status"] = "failed"
+        meta["stage"] = "failed"
+        meta["message"] = "Job failed."
         meta["error"] = error_message.splitlines()[0][:500]
         meta["finished_at"] = utc_now()
         self._write_json(job_dir / JOB_META_NAME, meta)
@@ -124,6 +153,7 @@ class JobStore:
             "result_ply": job_dir / RESULT_PLY_NAME,
             "preview_ply": job_dir / PREVIEW_PLY_NAME,
             "preview_gif": job_dir / PREVIEW_GIF_NAME,
+            "preview_video": job_dir / PREVIEW_VIDEO_NAME,
             "result_json": job_dir / RESULT_JSON_NAME,
             "error": job_dir / ERROR_NAME,
         }

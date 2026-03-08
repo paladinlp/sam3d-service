@@ -6,7 +6,7 @@ import os
 import sys
 from threading import Lock
 import time
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 from PIL import Image
@@ -24,10 +24,14 @@ from sam3d_service.storage import (
     JOB_KIND_SINGLE,
     PREVIEW_GIF_NAME,
     PREVIEW_PLY_NAME,
+    PREVIEW_VIDEO_NAME,
     RESULT_JSON_NAME,
     RESULT_PLY_NAME,
     SCENE_RESULT_PLY_NAME,
 )
+
+
+ProgressCallback = Callable[..., None]
 
 
 class InferenceRunner:
@@ -72,21 +76,37 @@ class InferenceRunner:
         self._ready_gaussian_for_video_rendering = ready_gaussian_for_video_rendering
         self._render_video = render_video
 
-    def run_job(self, job_dir: Path, job: dict[str, Any]) -> dict[str, Any]:
+    def run_job(
+        self,
+        job_dir: Path,
+        job: dict[str, Any],
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         kind = job.get("kind", JOB_KIND_SINGLE)
         seed = int(job.get("seed") or 42)
         if kind == JOB_KIND_SINGLE:
-            return self._run_single_job(job_dir, seed=seed)
+            return self._run_single_job(job_dir, seed=seed, progress_callback=progress_callback)
         if kind == JOB_KIND_SCENE:
-            return self._run_scene_job(job_dir, seed=seed)
+            return self._run_scene_job(job_dir, seed=seed, progress_callback=progress_callback)
         if kind == JOB_KIND_ALIGNMENT:
-            return self._run_alignment_job(job_dir)
+            return self._run_alignment_job(job_dir, progress_callback=progress_callback)
         raise ValueError(f"Unsupported job kind: {kind}")
 
-    def _run_single_job(self, job_dir: Path, seed: int) -> dict[str, Any]:
+    def _run_single_job(
+        self,
+        job_dir: Path,
+        seed: int,
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         if self._inference is None:
             raise RuntimeError("Model is not loaded.")
 
+        self._emit_progress(
+            progress_callback,
+            progress=5,
+            stage="loading_inputs",
+            message="Loading image and mask.",
+        )
         image = np.array(
             Image.open(job_dir / INPUT_IMAGE_NAME).convert("RGB"),
             dtype=np.uint8,
@@ -98,18 +118,43 @@ class InferenceRunner:
 
         inference_seconds = None
         render_seconds = None
+        media_artifacts = {"gif_artifact": None, "video_artifact": None, "seconds": None}
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
+            self._emit_progress(
+                progress_callback,
+                progress=18,
+                stage="gaussian_inference",
+                message="Running SAM 3D object inference.",
+            )
             inference_start = time.perf_counter()
             output = self._inference(image, mask, seed=seed)
             inference_seconds = time.perf_counter() - inference_start
-            preview_gif = self._maybe_render_gif(job_dir, [output], mode="single")
-            render_seconds = preview_gif["seconds"]
+            self._emit_progress(
+                progress_callback,
+                progress=58,
+                stage="rendering_preview",
+                message="Rendering notebook-style preview.",
+            )
+            media_artifacts = self._maybe_render_media(job_dir, [output], mode="single")
+            render_seconds = media_artifacts["seconds"]
 
+        self._emit_progress(
+            progress_callback,
+            progress=82,
+            stage="writing_artifacts",
+            message="Writing gaussian and preview files.",
+        )
         output["gs"].save_ply(str(job_dir / RESULT_PLY_NAME))
         preview_artifact = self._maybe_create_preview(
             job_dir / RESULT_PLY_NAME,
             job_dir / PREVIEW_PLY_NAME,
+        )
+        self._emit_progress(
+            progress_callback,
+            progress=96,
+            stage="finalizing",
+            message="Finalizing result payload.",
         )
         return {
             "kind": JOB_KIND_SINGLE,
@@ -121,7 +166,8 @@ class InferenceRunner:
                 "input_mask": INPUT_MASK_NAME,
                 "result_ply": RESULT_PLY_NAME,
                 "preview_ply": preview_artifact,
-                "preview_gif": preview_gif["artifact"],
+                "preview_gif": media_artifacts["gif_artifact"],
+                "preview_video": media_artifacts["video_artifact"],
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
@@ -131,10 +177,21 @@ class InferenceRunner:
             },
         }
 
-    def _run_scene_job(self, job_dir: Path, seed: int) -> dict[str, Any]:
+    def _run_scene_job(
+        self,
+        job_dir: Path,
+        seed: int,
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         if self._inference is None or self._make_scene is None:
             raise RuntimeError("Model is not loaded.")
 
+        self._emit_progress(
+            progress_callback,
+            progress=5,
+            stage="loading_inputs",
+            message="Loading image and scene masks.",
+        )
         image = np.array(
             Image.open(job_dir / INPUT_IMAGE_NAME).convert("RGB"),
             dtype=np.uint8,
@@ -148,10 +205,18 @@ class InferenceRunner:
         object_ply_files = []
         inference_seconds = None
         render_seconds = None
+        media_artifacts = {"gif_artifact": None, "video_artifact": None, "seconds": None}
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
             inference_start = time.perf_counter()
             for index, mask_path in enumerate(mask_paths):
+                progress = 12 + (index / max(len(mask_paths), 1)) * 44
+                self._emit_progress(
+                    progress_callback,
+                    progress=progress,
+                    stage="gaussian_inference",
+                    message=f"Reconstructing object {index + 1}/{len(mask_paths)}.",
+                )
                 mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) > 0
                 output = self._inference(image, mask, seed=seed)
                 object_name = f"object_{index:03d}.ply"
@@ -167,14 +232,38 @@ class InferenceRunner:
                     }
                 )
                 outputs.append(output)
+            self._emit_progress(
+                progress_callback,
+                progress=62,
+                stage="assembling_scene",
+                message="Merging object gaussians into one scene.",
+            )
             scene_gs = self._make_scene(*outputs)
             scene_gs.save_ply(str(job_dir / SCENE_RESULT_PLY_NAME))
             inference_seconds = time.perf_counter() - inference_start
-            preview_gif = self._maybe_render_gif(job_dir, scene_gs, mode="scene")
-            render_seconds = preview_gif["seconds"]
+            self._emit_progress(
+                progress_callback,
+                progress=72,
+                stage="rendering_preview",
+                message="Rendering notebook-style scene preview.",
+            )
+            media_artifacts = self._maybe_render_media(job_dir, scene_gs, mode="scene")
+            render_seconds = media_artifacts["seconds"]
+        self._emit_progress(
+            progress_callback,
+            progress=88,
+            stage="writing_artifacts",
+            message="Writing scene preview files.",
+        )
         preview_artifact = self._maybe_create_preview(
             job_dir / SCENE_RESULT_PLY_NAME,
             job_dir / PREVIEW_PLY_NAME,
+        )
+        self._emit_progress(
+            progress_callback,
+            progress=96,
+            stage="finalizing",
+            message="Finalizing scene payload.",
         )
 
         return {
@@ -186,7 +275,8 @@ class InferenceRunner:
                 "object_ply_files": object_ply_files,
                 "result_ply": SCENE_RESULT_PLY_NAME,
                 "preview_ply": preview_artifact,
-                "preview_gif": preview_gif["artifact"],
+                "preview_gif": media_artifacts["gif_artifact"],
+                "preview_video": media_artifacts["video_artifact"],
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
@@ -196,7 +286,11 @@ class InferenceRunner:
             },
         }
 
-    def _run_alignment_job(self, job_dir: Path) -> dict[str, Any]:
+    def _run_alignment_job(
+        self,
+        job_dir: Path,
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         process_and_save_alignment = self._load_alignment_helper()
 
         mesh_path = job_dir / INPUT_MESH_NAME
@@ -205,9 +299,21 @@ class InferenceRunner:
         focal_length_path = job_dir / FOCAL_LENGTH_JSON_NAME
         focal_length_json_path = str(focal_length_path) if focal_length_path.exists() else None
 
+        self._emit_progress(
+            progress_callback,
+            progress=8,
+            stage="loading_inputs",
+            message="Loading alignment inputs.",
+        )
         start_time = time.perf_counter()
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
+            self._emit_progress(
+                progress_callback,
+                progress=20,
+                stage="alignment_inference",
+                message="Aligning 3DB mesh to the reconstructed scale.",
+            )
             success, output_mesh_path, result = process_and_save_alignment(
                 mesh_path=str(mesh_path),
                 mask_path=str(job_dir / INPUT_MASK_NAME),
@@ -244,11 +350,23 @@ class InferenceRunner:
         }
         if focal_length_json_path is not None:
             artifacts["focal_length_json"] = FOCAL_LENGTH_JSON_NAME
+        self._emit_progress(
+            progress_callback,
+            progress=84,
+            stage="writing_artifacts",
+            message="Writing aligned mesh preview.",
+        )
         preview_artifact = self._maybe_create_preview(
             final_mesh_path,
             job_dir / PREVIEW_PLY_NAME,
         )
         artifacts["preview_ply"] = preview_artifact
+        self._emit_progress(
+            progress_callback,
+            progress=96,
+            stage="finalizing",
+            message="Finalizing alignment payload.",
+        )
 
         return {
             "kind": JOB_KIND_ALIGNMENT,
@@ -285,16 +403,16 @@ class InferenceRunner:
         except Exception:
             return source_path.name
 
-    def _maybe_render_gif(
+    def _maybe_render_media(
         self,
         job_dir: Path,
         scene_source: Any,
         mode: str,
     ) -> dict[str, Any]:
         if not self.settings.render_gif_enabled:
-            return {"artifact": None, "seconds": None}
+            return {"gif_artifact": None, "video_artifact": None, "seconds": None}
         if self._make_scene is None or self._ready_gaussian_for_video_rendering is None or self._render_video is None:
-            return {"artifact": None, "seconds": None}
+            return {"gif_artifact": None, "video_artifact": None, "seconds": None}
 
         try:
             import imageio.v2 as imageio
@@ -317,20 +435,50 @@ class InferenceRunner:
                 render_kwargs["yaw_start_deg"] = -45
 
             frames = self._render_video(scene_gs, **render_kwargs)["color"]
-            output_path = job_dir / PREVIEW_GIF_NAME
+            gif_path = job_dir / PREVIEW_GIF_NAME
             imageio.mimsave(
-                output_path,
+                gif_path,
                 [np.asarray(frame, dtype=np.uint8) for frame in frames],
                 format="GIF",
                 duration=1000 / max(self.settings.render_gif_fps, 1),
                 loop=0,
             )
+            video_path = self._maybe_write_video(job_dir / PREVIEW_VIDEO_NAME, frames)
             return {
-                "artifact": output_path.name,
+                "gif_artifact": gif_path.name,
+                "video_artifact": video_path.name if video_path is not None else None,
                 "seconds": time.perf_counter() - render_start,
             }
         except Exception:
-            return {"artifact": None, "seconds": None}
+            return {"gif_artifact": None, "video_artifact": None, "seconds": None}
+
+    def _maybe_write_video(self, output_path: Path, frames: list[Any]) -> Path | None:
+        try:
+            import imageio.v2 as imageio
+
+            with imageio.get_writer(
+                output_path,
+                fps=max(self.settings.render_gif_fps, 1),
+                codec="libx264",
+                format="FFMPEG",
+            ) as writer:
+                for frame in frames:
+                    writer.append_data(np.asarray(frame, dtype=np.uint8))
+            return output_path
+        except Exception:
+            return None
+
+    @staticmethod
+    def _emit_progress(
+        callback: ProgressCallback | None,
+        *,
+        progress: float,
+        stage: str,
+        message: str,
+    ) -> None:
+        if callback is None:
+            return
+        callback(progress=progress, stage=stage, message=message)
 
     @staticmethod
     def _tensor_to_flat_list(value: Any) -> list[float]:
