@@ -22,6 +22,7 @@ from sam3d_service.storage import (
     JOB_KIND_ALIGNMENT,
     JOB_KIND_SCENE,
     JOB_KIND_SINGLE,
+    PREVIEW_GIF_NAME,
     PREVIEW_PLY_NAME,
     RESULT_JSON_NAME,
     RESULT_PLY_NAME,
@@ -35,6 +36,8 @@ class InferenceRunner:
         self.gpu_lock = gpu_lock
         self._inference = None
         self._make_scene = None
+        self._ready_gaussian_for_video_rendering = None
+        self._render_video = None
         self._process_and_save_alignment = None
 
     @property
@@ -57,10 +60,17 @@ class InferenceRunner:
         notebook_dir = str(self.settings.repo_root / "notebook")
         if notebook_dir not in sys.path:
             sys.path.insert(0, notebook_dir)
-        from inference import Inference, make_scene  # pylint: disable=import-error
+        from inference import (  # pylint: disable=import-error
+            Inference,
+            make_scene,
+            ready_gaussian_for_video_rendering,
+            render_video,
+        )
 
         self._inference = Inference(str(self.settings.pipeline_config), compile=False)
         self._make_scene = make_scene
+        self._ready_gaussian_for_video_rendering = ready_gaussian_for_video_rendering
+        self._render_video = render_video
 
     def run_job(self, job_dir: Path, job: dict[str, Any]) -> dict[str, Any]:
         kind = job.get("kind", JOB_KIND_SINGLE)
@@ -86,11 +96,15 @@ class InferenceRunner:
             dtype=np.uint8,
         ) > 0
 
-        start_time = time.perf_counter()
+        inference_seconds = None
+        render_seconds = None
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
+            inference_start = time.perf_counter()
             output = self._inference(image, mask, seed=seed)
-        inference_seconds = time.perf_counter() - start_time
+            inference_seconds = time.perf_counter() - inference_start
+            preview_gif = self._maybe_render_gif(job_dir, [output], mode="single")
+            render_seconds = preview_gif["seconds"]
 
         output["gs"].save_ply(str(job_dir / RESULT_PLY_NAME))
         preview_artifact = self._maybe_create_preview(
@@ -107,11 +121,13 @@ class InferenceRunner:
                 "input_mask": INPUT_MASK_NAME,
                 "result_ply": RESULT_PLY_NAME,
                 "preview_ply": preview_artifact,
+                "preview_gif": preview_gif["artifact"],
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
+                "render_seconds": round(render_seconds, 3) if render_seconds is not None else None,
             },
         }
 
@@ -130,9 +146,11 @@ class InferenceRunner:
         outputs: list[dict[str, Any]] = []
         object_results = []
         object_ply_files = []
-        start_time = time.perf_counter()
+        inference_seconds = None
+        render_seconds = None
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
+            inference_start = time.perf_counter()
             for index, mask_path in enumerate(mask_paths):
                 mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) > 0
                 output = self._inference(image, mask, seed=seed)
@@ -151,7 +169,9 @@ class InferenceRunner:
                 outputs.append(output)
             scene_gs = self._make_scene(*outputs)
             scene_gs.save_ply(str(job_dir / SCENE_RESULT_PLY_NAME))
-        inference_seconds = time.perf_counter() - start_time
+            inference_seconds = time.perf_counter() - inference_start
+            preview_gif = self._maybe_render_gif(job_dir, scene_gs, mode="scene")
+            render_seconds = preview_gif["seconds"]
         preview_artifact = self._maybe_create_preview(
             job_dir / SCENE_RESULT_PLY_NAME,
             job_dir / PREVIEW_PLY_NAME,
@@ -166,11 +186,13 @@ class InferenceRunner:
                 "object_ply_files": object_ply_files,
                 "result_ply": SCENE_RESULT_PLY_NAME,
                 "preview_ply": preview_artifact,
+                "preview_gif": preview_gif["artifact"],
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
+                "render_seconds": round(render_seconds, 3) if render_seconds is not None else None,
             },
         }
 
@@ -262,6 +284,53 @@ class InferenceRunner:
             return preview_path.name
         except Exception:
             return source_path.name
+
+    def _maybe_render_gif(
+        self,
+        job_dir: Path,
+        scene_source: Any,
+        mode: str,
+    ) -> dict[str, Any]:
+        if not self.settings.render_gif_enabled:
+            return {"artifact": None, "seconds": None}
+        if self._make_scene is None or self._ready_gaussian_for_video_rendering is None or self._render_video is None:
+            return {"artifact": None, "seconds": None}
+
+        try:
+            import imageio.v2 as imageio
+
+            render_start = time.perf_counter()
+            if isinstance(scene_source, list):
+                scene_gs = self._make_scene(*scene_source)
+            else:
+                scene_gs = scene_source
+            scene_gs = self._ready_gaussian_for_video_rendering(scene_gs)
+
+            render_kwargs = {
+                "resolution": self.settings.render_gif_resolution,
+                "num_frames": self.settings.render_gif_frames,
+                "r": 1,
+                "fov": 60,
+            }
+            if mode == "single":
+                render_kwargs["pitch_deg"] = 15
+                render_kwargs["yaw_start_deg"] = -45
+
+            frames = self._render_video(scene_gs, **render_kwargs)["color"]
+            output_path = job_dir / PREVIEW_GIF_NAME
+            imageio.mimsave(
+                output_path,
+                [np.asarray(frame, dtype=np.uint8) for frame in frames],
+                format="GIF",
+                duration=1000 / max(self.settings.render_gif_fps, 1),
+                loop=0,
+            )
+            return {
+                "artifact": output_path.name,
+                "seconds": time.perf_counter() - render_start,
+            }
+        except Exception:
+            return {"artifact": None, "seconds": None}
 
     @staticmethod
     def _tensor_to_flat_list(value: Any) -> list[float]:

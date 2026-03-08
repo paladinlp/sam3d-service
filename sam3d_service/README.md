@@ -56,6 +56,10 @@ You can override it with:
 - `SAM3D_CHECKPOINT_TAG`: checkpoint folder under `checkpoints/` (default: `hf`)
 - `SAM3D_DEVICE`: device string for health reporting (default: `cuda`)
 - `SAM3D_DATA_DIR`: output directory for job files (default: `data/jobs`)
+- `SAM3D_RENDER_GIF`: render an official-style GIF preview for single and scene jobs (default: `1`)
+- `SAM3D_RENDER_GIF_RESOLUTION`: GIF render resolution (default: `512`)
+- `SAM3D_RENDER_GIF_FRAMES`: GIF frame count (default: `120`)
+- `SAM3D_RENDER_GIF_FPS`: GIF playback FPS (default: `30`)
 - `SAM3D_PREVIEW_MAX_POINTS`: max points kept in browser preview PLY (default: `25000`)
 - `SAM3D_PREVIEW_OPACITY_THRESHOLD`: minimum opacity kept when downsampling gaussian PLYs (default: `0.08`)
 - `SAM3D_HOST`: service bind address (default: `0.0.0.0`)
@@ -125,6 +129,7 @@ The page lets you:
 - run the multi-object scene flow from `demo_multi_object.ipynb`
 - run the 3DB mesh alignment flow from `demo_3db_mesh_alignment.ipynb`
 - click a foreground object to generate a mask when Segment Anything is ready
+- inspect the notebook-style server-rendered GIF preview for single and scene jobs
 - open a separate browser preview for the generated `PLY`
 - download all generated artifacts
 

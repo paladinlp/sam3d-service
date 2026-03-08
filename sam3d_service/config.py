@@ -11,6 +11,10 @@ class Settings:
     data_dir: Path
     checkpoint_tag: str
     device: str
+    render_gif_enabled: bool
+    render_gif_resolution: int
+    render_gif_frames: int
+    render_gif_fps: int
     preview_max_points: int
     preview_opacity_threshold: float
     segment_device: str
@@ -54,6 +58,15 @@ class Settings:
         ).expanduser().resolve()
         checkpoint_tag = os.environ.get("SAM3D_CHECKPOINT_TAG", "hf")
         device = os.environ.get("SAM3D_DEVICE", "cuda")
+        render_gif_enabled = os.environ.get("SAM3D_RENDER_GIF", "1").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        render_gif_resolution = int(os.environ.get("SAM3D_RENDER_GIF_RESOLUTION", "512"))
+        render_gif_frames = int(os.environ.get("SAM3D_RENDER_GIF_FRAMES", "120"))
+        render_gif_fps = int(os.environ.get("SAM3D_RENDER_GIF_FPS", "30"))
         preview_max_points = int(os.environ.get("SAM3D_PREVIEW_MAX_POINTS", "25000"))
         preview_opacity_threshold = float(os.environ.get("SAM3D_PREVIEW_OPACITY_THRESHOLD", "0.08"))
         segment_device = os.environ.get("SAM3D_SEGMENT_DEVICE", device)
@@ -66,6 +79,10 @@ class Settings:
             data_dir=data_dir,
             checkpoint_tag=checkpoint_tag,
             device=device,
+            render_gif_enabled=render_gif_enabled,
+            render_gif_resolution=render_gif_resolution,
+            render_gif_frames=render_gif_frames,
+            render_gif_fps=render_gif_fps,
             preview_max_points=preview_max_points,
             preview_opacity_threshold=preview_opacity_threshold,
             segment_device=segment_device,

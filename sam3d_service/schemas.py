@@ -15,6 +15,7 @@ class SceneObjectResult(BaseModel):
 
 class JobTimings(BaseModel):
     inference_seconds: Optional[float] = None
+    render_seconds: Optional[float] = None
     total_seconds: Optional[float] = None
 
 

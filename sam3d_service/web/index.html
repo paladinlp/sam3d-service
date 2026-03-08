@@ -491,6 +491,12 @@
                 <div class="meta-card"><span>Rotation</span><div id="singleRotationValue" class="muted">-</div></div>
                 <div class="meta-card"><span>Timing</span><div id="singleTimingValue" class="muted">-</div></div>
               </div>
+              <div class="preview">
+                <strong>Official-style Render</strong>
+                <div class="preview-shell">
+                  <img id="singleRenderPreview" alt="Single object rendered preview" />
+                </div>
+              </div>
               <div id="singleResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
             </div>
           </section>
@@ -565,6 +571,12 @@
               <div class="meta">
                 <div class="meta-card"><span>Objects</span><div id="sceneObjectCount" class="muted">-</div></div>
                 <div class="meta-card"><span>Timing</span><div id="sceneTimingValue" class="muted">-</div></div>
+              </div>
+              <div class="preview">
+                <strong>Official-style Render</strong>
+                <div class="preview-shell">
+                  <img id="sceneRenderPreview" alt="Scene rendered preview" />
+                </div>
               </div>
               <div id="sceneObjectList" class="object-list"><span class="muted">No scene objects yet.</span></div>
               <div id="sceneResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
@@ -688,6 +700,7 @@
         clickHint: document.getElementById("singleClickHint"),
         statusLog: document.getElementById("singleStatusLog"),
         resultLinks: document.getElementById("singleResultLinks"),
+        renderPreview: document.getElementById("singleRenderPreview"),
         translation: document.getElementById("singleTranslationValue"),
         rotation: document.getElementById("singleRotationValue"),
         scale: document.getElementById("singleScaleValue"),
@@ -708,6 +721,7 @@
         clickHint: document.getElementById("sceneClickHint"),
         statusLog: document.getElementById("sceneStatusLog"),
         resultLinks: document.getElementById("sceneResultLinks"),
+        renderPreview: document.getElementById("sceneRenderPreview"),
         objectList: document.getElementById("sceneObjectList"),
         objectCount: document.getElementById("sceneObjectCount"),
         timing: document.getElementById("sceneTimingValue"),
@@ -908,6 +922,9 @@
         entries.push(...flattenArtifacts(result.artifacts).map((item) => ({ ...item, className: "" })));
         const seen = new Set();
         const uniqueEntries = entries.filter((entry) => {
+          if (!entry.href) {
+            return false;
+          }
           const key = `${entry.href}::${entry.className || ""}`;
           if (seen.has(key)) {
             return false;
@@ -927,11 +944,21 @@
           .join("");
       }
 
+      function renderGifPreview(imgEl, result) {
+        const gifUrl = result?.artifacts?.preview_gif;
+        if (!gifUrl) {
+          clearElementImage(imgEl);
+          return;
+        }
+        imgEl.src = gifUrl;
+      }
+
       function resetSingleResult() {
         singleEls.translation.textContent = "-";
         singleEls.rotation.textContent = "-";
         singleEls.scale.textContent = "-";
         singleEls.timing.textContent = "-";
+        clearElementImage(singleEls.renderPreview);
         singleEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
       }
 
@@ -939,6 +966,7 @@
         sceneEls.objectCount.textContent = "-";
         sceneEls.timing.textContent = "-";
         sceneEls.objectList.innerHTML = '<span class="muted">No scene objects yet.</span>';
+        clearElementImage(sceneEls.renderPreview);
         sceneEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
       }
 
@@ -956,8 +984,10 @@
         singleEls.rotation.textContent = formatList(result.rotation);
         singleEls.scale.textContent = formatList(result.scale);
         const timings = result.timings || {};
-        singleEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        singleEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s render=${timings.render_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        renderGifPreview(singleEls.renderPreview, result);
         renderArtifactLinks(singleEls.resultLinks, result, [
+          { label: "Open GIF", href: result.artifacts.preview_gif, className: "" },
           { label: "Download PLY", href: result.artifacts.result_ply, className: "" },
           { label: "Download JSON", href: result.artifacts.result_json, className: "" },
         ]);
@@ -966,7 +996,8 @@
       function renderSceneResult(result) {
         const timings = result.timings || {};
         sceneEls.objectCount.textContent = `${result.objects?.length || 0}`;
-        sceneEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        sceneEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s render=${timings.render_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        renderGifPreview(sceneEls.renderPreview, result);
         const objects = result.objects || [];
         if (!objects.length) {
           sceneEls.objectList.innerHTML = '<span class="muted">No per-object outputs recorded.</span>';
@@ -989,6 +1020,7 @@
             .join("");
         }
         renderArtifactLinks(sceneEls.resultLinks, result, [
+          { label: "Open GIF", href: result.artifacts.preview_gif, className: "" },
           { label: "Download Scene PLY", href: result.artifacts.result_ply, className: "" },
           { label: "Download JSON", href: result.artifacts.result_json, className: "" },
         ]);

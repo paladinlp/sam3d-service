@@ -17,6 +17,7 @@ INPUT_MESH_NAME = "input_mesh.ply"
 FOCAL_LENGTH_JSON_NAME = "focal_length.json"
 RESULT_PLY_NAME = "result.ply"
 PREVIEW_PLY_NAME = "preview.ply"
+PREVIEW_GIF_NAME = "preview.gif"
 SCENE_RESULT_PLY_NAME = "scene_result.ply"
 ALIGNMENT_RESULT_PLY_NAME = "aligned_mesh.ply"
 ERROR_NAME = "error.txt"
@@ -122,6 +123,7 @@ class JobStore:
             "focal_length_json": job_dir / FOCAL_LENGTH_JSON_NAME,
             "result_ply": job_dir / RESULT_PLY_NAME,
             "preview_ply": job_dir / PREVIEW_PLY_NAME,
+            "preview_gif": job_dir / PREVIEW_GIF_NAME,
             "result_json": job_dir / RESULT_JSON_NAME,
             "error": job_dir / ERROR_NAME,
         }
