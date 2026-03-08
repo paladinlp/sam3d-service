@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAM 3D Objects Service</title>
+    <style>
+      :root {
+        --bg: #f2efe7;
+        --paper: rgba(255, 252, 244, 0.84);
+        --ink: #18211e;
+        --muted: #5f6d67;
+        --line: rgba(24, 33, 30, 0.12);
+        --accent: #0e7a62;
+        --accent-strong: #0a5d4b;
+        --warn: #9b3d25;
+        --shadow: 0 24px 60px rgba(18, 27, 25, 0.12);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+        background:
+          radial-gradient(circle at top left, rgba(14, 122, 98, 0.14), transparent 34%),
+          radial-gradient(circle at top right, rgba(185, 97, 53, 0.12), transparent 28%),
+          linear-gradient(180deg, #f7f3ea 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(1100px, calc(100vw - 32px));
+        margin: 32px auto;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
+        align-items: stretch;
+      }
+
+      .card {
+        background: var(--paper);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .headline,
+      .panel,
+      .status-board {
+        padding: 24px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(14, 122, 98, 0.08);
+        color: var(--accent-strong);
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 12px;
+        font-size: clamp(34px, 6vw, 58px);
+        line-height: 0.94;
+        letter-spacing: -0.04em;
+      }
+
+      .headline p {
+        margin: 0;
+        max-width: 34rem;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.65;
+      }
+
+      .status-board {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background:
+          linear-gradient(135deg, rgba(14, 122, 98, 0.12), rgba(255, 252, 244, 0.85));
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 14px;
+        background: rgba(24, 33, 30, 0.06);
+        color: var(--ink);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--muted);
+      }
+
+      .dot.ok {
+        background: var(--accent);
+      }
+
+      .dot.err {
+        background: var(--warn);
+      }
+
+      .grid {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 22px;
+      }
+
+      .field {
+        margin-bottom: 16px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .field input[type="file"],
+      .field input[type="number"] {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.66);
+        font: inherit;
+        color: inherit;
+      }
+
+      .note {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        cursor: pointer;
+        transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .primary {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .secondary {
+        color: var(--ink);
+        background: rgba(24, 33, 30, 0.07);
+      }
+
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .preview {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .preview strong {
+        display: block;
+        padding: 12px 14px;
+        font-size: 13px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .preview-shell {
+        position: relative;
+      }
+
+      .preview img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        background:
+          linear-gradient(45deg, rgba(24, 33, 30, 0.04) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(24, 33, 30, 0.04) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(24, 33, 30, 0.04) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(24, 33, 30, 0.04) 75%);
+        background-size: 20px 20px;
+        background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      }
+
+      .clickable {
+        cursor: crosshair;
+      }
+
+      .marker {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid #f8f6ef;
+        background: rgba(14, 122, 98, 0.8);
+        box-shadow: 0 8px 16px rgba(18, 27, 25, 0.25);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        display: none;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .log {
+        min-height: 128px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.68);
+        color: var(--muted);
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .meta-card {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.64);
+      }
+
+      .meta-card span {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .result-links {
+        display: grid;
+        gap: 10px;
+      }
+
+      .result-links a {
+        color: var(--accent-strong);
+        text-decoration: none;
+        padding-bottom: 2px;
+        border-bottom: 1px solid rgba(10, 93, 75, 0.25);
+        width: fit-content;
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .grid,
+        .preview-grid,
+        .meta {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          width: min(100vw - 20px, 1100px);
+          margin: 16px auto 28px;
+        }
+
+        .headline,
+        .status-board,
+        .panel {
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="card headline">
+          <div class="eyebrow">SAM 3D Objects / Web Console</div>
+          <h1>上传图片，点一下目标物体，再转成 3D。</h1>
+          <p>
+            这个页面会先调用点击分割接口生成 mask，再把原图和 mask 提交给当前 3D 服务。你也可以跳过点击，直接上传一个手工准备好的 mask。
+          </p>
+        </div>
+        <aside class="card status-board">
+          <div>
+            <div id="healthPill" class="pill"><span class="dot"></span><span>Checking service...</span></div>
+          </div>
+          <div class="stack">
+            <div class="meta-card">
+              <span>Service</span>
+              <div id="serviceInfo">Waiting for health check</div>
+            </div>
+            <div class="meta-card">
+              <span>Current Job</span>
+              <div id="jobInfo">No job submitted</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <section class="card panel">
+          <h2 class="section-title">Submit</h2>
+          <form id="jobForm">
+            <div class="field">
+              <label for="imageInput">Image</label>
+              <input id="imageInput" name="image" type="file" accept="image/*" required />
+            </div>
+            <div class="field">
+              <label for="maskInput">Manual Mask (optional)</label>
+              <input id="maskInput" name="mask" type="file" accept="image/*" />
+            </div>
+            <div class="field">
+              <label for="seedInput">Seed</label>
+              <input id="seedInput" name="seed" type="number" value="42" step="1" />
+            </div>
+            <p class="note">
+              默认流程：先上传图片，再点击右侧预览中的目标物体生成 mask，然后提交 3D 任务。
+            </p>
+            <div class="actions">
+              <button id="submitButton" class="primary" type="submit">Submit 3D Job</button>
+              <button id="clearMaskButton" class="secondary" type="button">Clear Generated Mask</button>
+              <button id="resetButton" class="secondary" type="button">Reset</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card panel">
+          <h2 class="section-title">Preview</h2>
+          <div class="preview-grid">
+            <div class="preview">
+              <strong>Image (click to segment)</strong>
+              <div class="preview-shell">
+                <img id="imagePreview" alt="Selected image preview" class="clickable" />
+                <div id="clickMarker" class="marker"></div>
+              </div>
+            </div>
+            <div class="preview">
+              <strong>Mask</strong>
+              <div class="preview-shell">
+                <img id="maskPreview" alt="Selected or generated mask preview" />
+              </div>
+            </div>
+          </div>
+          <p class="note" id="clickHint">
+            上传图片后，点击左侧预览中的目标区域。服务会用点提示生成 mask。
+          </p>
+        </section>
+      </section>
+
+      <section class="grid">
+        <section class="card panel">
+          <h2 class="section-title">Status</h2>
+          <div id="statusLog" class="log">Ready.</div>
+        </section>
+
+        <section class="card panel">
+          <h2 class="section-title">Result</h2>
+          <div class="stack">
+            <div class="meta">
+              <div class="meta-card"><span>Translation</span><div id="translationValue" class="muted">-</div></div>
+              <div class="meta-card"><span>Scale</span><div id="scaleValue" class="muted">-</div></div>
+              <div class="meta-card"><span>Rotation</span><div id="rotationValue" class="muted">-</div></div>
+              <div class="meta-card"><span>Timing</span><div id="timingValue" class="muted">-</div></div>
+            </div>
+            <div class="result-links" id="resultLinks">
+              <span class="muted">No artifacts yet.</span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const state = {
+        currentJobId: null,
+        pollTimer: null,
+        segmentationAvailable: false,
+        generatedMaskFile: null,
+        clickPoint: null,
+      };
+
+      const healthPill = document.getElementById("healthPill");
+      const serviceInfo = document.getElementById("serviceInfo");
+      const jobInfo = document.getElementById("jobInfo");
+      const statusLog = document.getElementById("statusLog");
+      const resultLinks = document.getElementById("resultLinks");
+      const translationValue = document.getElementById("translationValue");
+      const rotationValue = document.getElementById("rotationValue");
+      const scaleValue = document.getElementById("scaleValue");
+      const timingValue = document.getElementById("timingValue");
+      const form = document.getElementById("jobForm");
+      const submitButton = document.getElementById("submitButton");
+      const resetButton = document.getElementById("resetButton");
+      const clearMaskButton = document.getElementById("clearMaskButton");
+      const imageInput = document.getElementById("imageInput");
+      const maskInput = document.getElementById("maskInput");
+      const imagePreview = document.getElementById("imagePreview");
+      const maskPreview = document.getElementById("maskPreview");
+      const clickHint = document.getElementById("clickHint");
+      const clickMarker = document.getElementById("clickMarker");
+
+      function setHealth(ok, text, details) {
+        healthPill.innerHTML = `<span class="dot ${ok ? "ok" : "err"}"></span><span>${text}</span>`;
+        serviceInfo.textContent = details;
+      }
+
+      function log(message) {
+        statusLog.textContent = message;
+      }
+
+      function resetResult() {
+        translationValue.textContent = "-";
+        rotationValue.textContent = "-";
+        scaleValue.textContent = "-";
+        timingValue.textContent = "-";
+        resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
+      }
+
+      function setPreview(input, imgEl) {
+        const [file] = input.files || [];
+        if (!file) {
+          imgEl.removeAttribute("src");
+          return;
+        }
+        const url = URL.createObjectURL(file);
+        imgEl.src = url;
+        imgEl.onload = () => URL.revokeObjectURL(url);
+      }
+
+      async function checkHealth() {
+        try {
+          const res = await fetch("/healthz");
+          const data = await res.json();
+          state.segmentationAvailable = Boolean(data.click_segmentation_checkpoint_ready);
+          const ready = Boolean(res.ok && data.model_loaded);
+          const segmentText = `segment_checkpoint=${data.click_segmentation_checkpoint_ready} segment_loaded=${data.click_segmentation_model_loaded}`;
+          setHealth(
+            ready,
+            ready ? "Service ready" : "Service not ready",
+            `device=${data.device} ${segmentText}`,
+          );
+          clickHint.textContent = state.segmentationAvailable
+            ? "上传图片后可直接点击目标区域，服务会自动生成 mask。"
+            : "点击分割当前不可用，请准备 Segment Anything checkpoint，或手工上传 mask。";
+        } catch (error) {
+          state.segmentationAvailable = false;
+          setHealth(false, "Service unreachable", String(error));
+          clickHint.textContent = "服务不可达。";
+        }
+      }
+
+      async function submitJob(event) {
+        event.preventDefault();
+        if (!imageInput.files.length) {
+          log("Please choose an image.");
+          return;
+        }
+
+        const manualMask = maskInput.files[0] || null;
+        const maskToSend = manualMask || state.generatedMaskFile;
+        if (!maskToSend) {
+          log("Please upload a mask or click the image to generate one.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", imageInput.files[0]);
+        formData.append("mask", maskToSend, maskToSend.name || "generated-mask.png");
+        formData.append("seed", document.getElementById("seedInput").value || "42");
+
+        submitButton.disabled = true;
+        resetResult();
+        log("Submitting 3D job...");
+
+        try {
+          const res = await fetch("/jobs", { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to submit job.");
+          }
+          state.currentJobId = data.job_id;
+          jobInfo.textContent = `${data.job_id} (${data.status})`;
+          log(`Job ${data.job_id} queued. Polling...`);
+          startPolling(data.job_id);
+        } catch (error) {
+          log(String(error));
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+
+      async function handleImageClick(event) {
+        if (!imageInput.files.length) {
+          log("Please upload an image first.");
+          return;
+        }
+        if (!state.segmentationAvailable) {
+          log("Click segmentation is not ready on the server. Upload a mask manually or add the SAM checkpoint.");
+          return;
+        }
+
+        const point = computeImagePoint(event, imagePreview);
+        if (!point) {
+          return;
+        }
+
+        placeMarker(point.displayX, point.displayY);
+        state.clickPoint = point;
+        log(`Segmenting object at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
+
+        const formData = new FormData();
+        formData.append("image", imageInput.files[0]);
+        formData.append("x", String(point.imageX));
+        formData.append("y", String(point.imageY));
+        formData.append("label", "1");
+
+        try {
+          const res = await fetch("/segment/click", { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to generate mask.");
+          }
+          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
+          maskPreview.src = dataUrl;
+          state.generatedMaskFile = dataUrlToFile(dataUrl, "generated-mask.png");
+          maskInput.value = "";
+          log(`Mask generated. score=${Number(data.score).toFixed(4)}`);
+        } catch (error) {
+          log(String(error));
+        }
+      }
+
+      function computeImagePoint(event, imageEl) {
+        if (!imageEl.naturalWidth || !imageEl.naturalHeight) {
+          return null;
+        }
+        const rect = imageEl.getBoundingClientRect();
+        const imageAspect = imageEl.naturalWidth / imageEl.naturalHeight;
+        const boxAspect = rect.width / rect.height;
+        let renderWidth = rect.width;
+        let renderHeight = rect.height;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (imageAspect > boxAspect) {
+          renderHeight = rect.width / imageAspect;
+          offsetY = (rect.height - renderHeight) / 2;
+        } else {
+          renderWidth = rect.height * imageAspect;
+          offsetX = (rect.width - renderWidth) / 2;
+        }
+
+        const localX = event.clientX - rect.left - offsetX;
+        const localY = event.clientY - rect.top - offsetY;
+        if (localX < 0 || localY < 0 || localX > renderWidth || localY > renderHeight) {
+          log("Please click inside the visible image area.");
+          return null;
+        }
+
+        return {
+          imageX: (localX / renderWidth) * imageEl.naturalWidth,
+          imageY: (localY / renderHeight) * imageEl.naturalHeight,
+          displayX: offsetX + localX,
+          displayY: offsetY + localY,
+        };
+      }
+
+      function placeMarker(x, y) {
+        clickMarker.style.left = `${x}px`;
+        clickMarker.style.top = `${y}px`;
+        clickMarker.style.display = "block";
+      }
+
+      function clearGeneratedMask(preserveManualMask = true) {
+        state.generatedMaskFile = null;
+        clickMarker.style.display = "none";
+        if (!(preserveManualMask && maskInput.files.length)) {
+          maskPreview.removeAttribute("src");
+        }
+        if (!maskInput.files.length) {
+          log("Generated mask cleared.");
+        }
+      }
+
+      function dataUrlToFile(dataUrl, filename) {
+        const [meta, content] = dataUrl.split(",");
+        const mime = meta.match(/data:(.*?);base64/)[1];
+        const binary = atob(content);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return new File([bytes], filename, { type: mime });
+      }
+
+      function startPolling(jobId) {
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+        }
+        pollJob(jobId);
+        state.pollTimer = setInterval(() => pollJob(jobId), 5000);
+      }
+
+      async function pollJob(jobId) {
+        try {
+          const res = await fetch(`/jobs/${jobId}`);
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to fetch job status.");
+          }
+
+          jobInfo.textContent = `${data.job_id} (${data.status})`;
+
+          if (data.status === "queued" || data.status === "running") {
+            log(`Job ${data.job_id} is ${data.status}.`);
+            return;
+          }
+
+          if (state.pollTimer) {
+            clearInterval(state.pollTimer);
+            state.pollTimer = null;
+          }
+
+          if (data.status === "failed") {
+            log(`Job failed: ${data.error || "Unknown error"}`);
+            return;
+          }
+
+          renderResult(data.result);
+          log(`Job ${data.job_id} finished successfully.`);
+        } catch (error) {
+          log(String(error));
+        }
+      }
+
+      function renderResult(result) {
+        translationValue.textContent = formatList(result.translation);
+        rotationValue.textContent = formatList(result.rotation);
+        scaleValue.textContent = formatList(result.scale);
+        const timings = result.timings || {};
+        timingValue.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+
+        const links = [
+          ["Download PLY", result.artifacts.result_ply],
+          ["Download JSON", result.artifacts.result_json],
+          ["Input Image", result.artifacts.input_image],
+          ["Input Mask", result.artifacts.input_mask],
+        ];
+        resultLinks.innerHTML = links
+          .map(([label, href]) => `<a href="${href}" target="_blank" rel="noreferrer">${label}</a>`)
+          .join("");
+      }
+
+      function formatList(values) {
+        if (!values || !values.length) {
+          return "-";
+        }
+        return values.map((value) => Number(value).toFixed(4)).join(", ");
+      }
+
+      function resetForm() {
+        form.reset();
+        imagePreview.removeAttribute("src");
+        maskPreview.removeAttribute("src");
+        clickMarker.style.display = "none";
+        state.generatedMaskFile = null;
+        state.clickPoint = null;
+        jobInfo.textContent = "No job submitted";
+        log("Ready.");
+        resetResult();
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+      }
+
+      imageInput.addEventListener("change", () => {
+        setPreview(imageInput, imagePreview);
+        clearGeneratedMask(false);
+      });
+      maskInput.addEventListener("change", () => {
+        setPreview(maskInput, maskPreview);
+        if (maskInput.files.length) {
+          state.generatedMaskFile = null;
+          clickMarker.style.display = "none";
+          log("Using uploaded mask.");
+        }
+      });
+      imagePreview.addEventListener("click", handleImageClick);
+      form.addEventListener("submit", submitJob);
+      clearMaskButton.addEventListener("click", () => clearGeneratedMask(true));
+      resetButton.addEventListener("click", resetForm);
+
+      checkHealth();
+    </script>
+  </body>
+</html>
