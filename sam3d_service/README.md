@@ -129,6 +129,7 @@ The page lets you:
 - run the multi-object scene flow from `demo_multi_object.ipynb`
 - run the 3DB mesh alignment flow from `demo_3db_mesh_alignment.ipynb`
 - click a foreground object to generate a mask when Segment Anything is ready
+- refine scene masks with positive and negative point prompts, then confirm or remove queued objects
 - inspect the notebook-style server-rendered GIF and MP4 preview for single and scene jobs
 - monitor per-job progress and stage updates while gaussian inference is running
 - open a separate browser preview for the generated `PLY`

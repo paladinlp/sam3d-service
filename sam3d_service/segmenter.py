@@ -61,16 +61,39 @@ class ClickSegmenter:
         y: float,
         label: int = 1,
     ) -> dict:
+        return self.segment_points_from_bytes(
+            image_bytes,
+            [{"x": x, "y": y, "label": label}],
+        )
+
+    def segment_points_from_bytes(
+        self,
+        image_bytes: bytes,
+        points: list[dict[str, float | int]],
+    ) -> dict:
         self.load_model()
         image = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
         height, width = image.shape[:2]
-        if not (0 <= x < width and 0 <= y < height):
-            raise ValueError(
-                f"Point ({x}, {y}) is outside image bounds ({width}, {height})."
-            )
+        if not points:
+            raise ValueError("At least one point prompt is required.")
 
-        point_coords = np.array([[x, y]], dtype=np.float32)
-        point_labels = np.array([int(label)], dtype=np.int32)
+        coords = []
+        labels = []
+        for point in points:
+            x = float(point["x"])
+            y = float(point["y"])
+            label = int(point.get("label", 1))
+            if label not in {0, 1}:
+                raise ValueError(f"Unsupported point label: {label}")
+            if not (0 <= x < width and 0 <= y < height):
+                raise ValueError(
+                    f"Point ({x}, {y}) is outside image bounds ({width}, {height})."
+                )
+            coords.append([x, y])
+            labels.append(label)
+
+        point_coords = np.asarray(coords, dtype=np.float32)
+        point_labels = np.asarray(labels, dtype=np.int32)
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
             self._predictor.set_image(image)
@@ -84,8 +107,8 @@ class ClickSegmenter:
         best_mask = masks[best_index]
         mask_png = self._mask_to_png_bytes(best_mask)
         return {
-            "x": float(x),
-            "y": float(y),
+            "x": float(point_coords[-1][0]),
+            "y": float(point_coords[-1][1]),
             "score": float(scores[best_index]),
             "width": int(width),
             "height": int(height),

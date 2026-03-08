@@ -90,24 +90,40 @@ def create_app() -> FastAPI:
     async def segment_click(
         request: Request,
         image: UploadFile = File(...),
-        x: float = Form(...),
-        y: float = Form(...),
+        x: float | None = Form(None),
+        y: float | None = Form(None),
         label: int = Form(1),
+        points_json: str | None = Form(None),
     ) -> ClickSegmentationResponse:
         image_bytes, image_size = await _load_image_upload(image)
-        if not (0 <= x < image_size[0] and 0 <= y < image_size[1]):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Point ({x}, {y}) is outside the image bounds.",
-            )
+        points: list[dict[str, Any]]
+        if points_json:
+            try:
+                payload = json.loads(points_json)
+            except json.JSONDecodeError as exc:
+                raise HTTPException(status_code=400, detail="Invalid points_json payload.") from exc
+            if not isinstance(payload, list) or not payload:
+                raise HTTPException(status_code=400, detail="points_json must be a non-empty list.")
+            points = payload
+        else:
+            if x is None or y is None:
+                raise HTTPException(status_code=400, detail="Either points_json or x/y must be provided.")
+            points = [{"x": x, "y": y, "label": label}]
+
+        for point in points:
+            px = float(point.get("x", -1))
+            py = float(point.get("y", -1))
+            if not (0 <= px < image_size[0] and 0 <= py < image_size[1]):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Point ({px}, {py}) is outside the image bounds.",
+                )
         segmenter: ClickSegmenter = request.app.state.segmenter
         try:
             payload = await asyncio.to_thread(
-                segmenter.segment_click_from_bytes,
+                segmenter.segment_points_from_bytes,
                 image_bytes,
-                x,
-                y,
-                label,
+                points,
             )
         except (FileNotFoundError, RuntimeError) as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc

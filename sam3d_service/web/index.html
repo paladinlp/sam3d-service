@@ -309,6 +309,44 @@
         display: none;
       }
 
+      .marker-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .prompt-point {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        transform: translate(-50%, -50%);
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #f8f6ef;
+        border: 2px solid rgba(255, 255, 255, 0.92);
+        box-shadow: 0 6px 18px rgba(18, 27, 25, 0.24);
+      }
+
+      .prompt-point.positive {
+        background: rgba(14, 122, 98, 0.88);
+      }
+
+      .prompt-point.negative {
+        background: rgba(155, 61, 37, 0.88);
+      }
+
+      .compact-actions {
+        margin-top: 10px;
+      }
+
+      .mode-button.active {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
       .muted {
         color: var(--muted);
       }
@@ -406,6 +444,17 @@
 
       .object-card .artifact-link {
         margin-top: 8px;
+      }
+
+      .queue-remove {
+        margin-top: 10px;
+        border: none;
+        border-radius: 999px;
+        padding: 7px 11px;
+        background: rgba(155, 61, 37, 0.1);
+        color: var(--warn);
+        cursor: pointer;
+        font: inherit;
       }
 
       .media-viewer {
@@ -645,10 +694,11 @@
                 <input id="sceneSeedInput" type="number" value="42" step="1" />
               </div>
               <p class="note">
-                对应 `demo_multi_object.ipynb`。你可以手工上传多个 mask，或者反复点击图像生成当前 mask，再点 `Add Current Mask` 把它加入场景对象列表。
+                对应 `demo_multi_object.ipynb`。你可以手工上传多个 mask，或者用正负点逐步提示分割，再把当前 mask 确认加入场景对象列表。
               </p>
               <div class="actions">
-                <button id="sceneAddMaskButton" class="action secondary" type="button">Add Current Mask</button>
+                <button id="sceneAddMaskButton" class="action secondary" type="button">Confirm Current Mask</button>
+                <button id="sceneUndoPointButton" class="action secondary" type="button">Undo Point</button>
                 <button id="sceneSubmitButton" class="action primary" type="submit">Submit Scene Job</button>
                 <button id="sceneClearMasksButton" class="action secondary" type="button">Clear Scene Masks</button>
                 <button id="sceneResetButton" class="action secondary" type="button">Reset</button>
@@ -670,7 +720,7 @@
                 <strong>Image (click to segment)</strong>
                 <div class="preview-shell">
                   <img id="sceneImagePreview" alt="Scene image preview" class="clickable" />
-                  <div id="sceneMarker" class="marker"></div>
+                  <div id="sceneMarkerLayer" class="marker-layer"></div>
                 </div>
               </div>
               <div class="preview">
@@ -680,7 +730,11 @@
                 </div>
               </div>
             </div>
-            <p class="note" id="sceneClickHint">点击图像后会生成当前 mask，再通过 `Add Current Mask` 加入场景队列。</p>
+            <div class="actions compact-actions">
+              <button id="scenePositiveModeButton" class="action secondary mode-button" type="button">Positive Point</button>
+              <button id="sceneNegativeModeButton" class="action secondary mode-button" type="button">Negative Point</button>
+            </div>
+            <p class="note" id="sceneClickHint">左键会按当前模式添加提示点，右键会临时作为 negative point。确认当前 mask 后加入场景队列。</p>
           </section>
         </section>
 
@@ -832,6 +886,8 @@
       const sceneState = {
         pollTimer: null,
         currentGeneratedMaskFile: null,
+        promptPoints: [],
+        pointMode: "positive",
         queuedMasks: [],
       };
 
@@ -877,7 +933,7 @@
         seedInput: document.getElementById("sceneSeedInput"),
         imagePreview: document.getElementById("sceneImagePreview"),
         maskPreview: document.getElementById("sceneMaskPreview"),
-        marker: document.getElementById("sceneMarker"),
+        markerLayer: document.getElementById("sceneMarkerLayer"),
         clickHint: document.getElementById("sceneClickHint"),
         statusLog: document.getElementById("sceneStatusLog"),
         resultLinks: document.getElementById("sceneResultLinks"),
@@ -897,6 +953,9 @@
         maskSummary: document.getElementById("sceneMaskSummary"),
         maskList: document.getElementById("sceneMaskList"),
         addMaskButton: document.getElementById("sceneAddMaskButton"),
+        undoPointButton: document.getElementById("sceneUndoPointButton"),
+        positiveModeButton: document.getElementById("scenePositiveModeButton"),
+        negativeModeButton: document.getElementById("sceneNegativeModeButton"),
         submitButton: document.getElementById("sceneSubmitButton"),
         clearMasksButton: document.getElementById("sceneClearMasksButton"),
         resetButton: document.getElementById("sceneResetButton"),
@@ -1050,7 +1109,9 @@
             ? "点击分割可用。上传图片后直接点击目标区域即可生成 mask。"
             : "点击分割当前不可用，请准备 Segment Anything checkpoint，或手工上传 mask。";
           singleEls.clickHint.textContent = clickHintText;
-          sceneEls.clickHint.textContent = clickHintText.replace("即可", "，再点 Add Current Mask 即可");
+          sceneEls.clickHint.textContent = appState.segmentationAvailable
+            ? "左键按当前模式添加提示点，右键可临时作为 negative point。确认当前 mask 后加入场景队列。"
+            : "点击分割当前不可用，请手工上传多个 mask。";
           alignmentEls.clickHint.textContent = clickHintText;
         } catch (error) {
           appState.segmentationAvailable = false;
@@ -1061,12 +1122,25 @@
         }
       }
 
-      async function requestClickMask(imageFile, point) {
+      async function requestClickMask(imageFile, pointOrPoints) {
+        const points = Array.isArray(pointOrPoints) ? pointOrPoints : [pointOrPoints];
         const formData = new FormData();
         formData.append("image", imageFile);
-        formData.append("x", String(point.imageX));
-        formData.append("y", String(point.imageY));
-        formData.append("label", "1");
+        formData.append(
+          "points_json",
+          JSON.stringify(
+            points.map((point) => ({
+              x: point.imageX,
+              y: point.imageY,
+              label: point.label ?? 1,
+            }))
+          )
+        );
+        if (points.length === 1) {
+          formData.append("x", String(points[0].imageX));
+          formData.append("y", String(points[0].imageY));
+          formData.append("label", String(points[0].label ?? 1));
+        }
         const res = await fetch("/segment/click", { method: "POST", body: formData });
         const data = await res.json();
         if (!res.ok) {
@@ -1343,6 +1417,74 @@
         setCurrentJob(null, null);
       }
 
+      function setScenePointMode(mode) {
+        sceneState.pointMode = mode;
+        sceneEls.positiveModeButton.classList.toggle("active", mode === "positive");
+        sceneEls.negativeModeButton.classList.toggle("active", mode === "negative");
+      }
+
+      function renderScenePromptPoints() {
+        sceneEls.markerLayer.innerHTML = sceneState.promptPoints
+          .map((point) => {
+            const sign = point.label === 1 ? "+" : "-";
+            const kind = point.label === 1 ? "positive" : "negative";
+            return `
+              <div
+                class="prompt-point ${kind}"
+                style="left:${point.displayX}px; top:${point.displayY}px;"
+                title="${kind} point"
+              >${sign}</div>
+            `;
+          })
+          .join("");
+      }
+
+      function normalizeQueuedMask(file, metadata = {}) {
+        return {
+          file,
+          name: file.name,
+          source: metadata.source || "manual",
+          pointCount: metadata.pointCount || 0,
+        };
+      }
+
+      function resetScenePromptState({ keepMaskPreview = false } = {}) {
+        sceneState.promptPoints = [];
+        sceneState.currentGeneratedMaskFile = null;
+        renderScenePromptPoints();
+        if (!keepMaskPreview) {
+          clearElementImage(sceneEls.maskPreview);
+        }
+      }
+
+      async function rebuildSceneMaskFromPrompt(messagePrefix = "Updating mask") {
+        if (!sceneEls.imageInput.files.length) {
+          logMessage(sceneEls.statusLog, "Please upload an image first.");
+          return;
+        }
+        if (!sceneState.promptPoints.length) {
+          resetScenePromptState();
+          logMessage(sceneEls.statusLog, "Prompt points cleared.");
+          return;
+        }
+        logMessage(sceneEls.statusLog, `${messagePrefix} from ${sceneState.promptPoints.length} point(s)...`);
+        try {
+          const data = await requestClickMask(sceneEls.imageInput.files[0], sceneState.promptPoints);
+          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
+          sceneEls.maskPreview.src = dataUrl;
+          sceneState.currentGeneratedMaskFile = dataUrlToFile(
+            dataUrl,
+            `scene-generated-${sceneState.queuedMasks.length}.png`
+          );
+          logMessage(
+            sceneEls.statusLog,
+            `Current mask updated. score=${Number(data.score).toFixed(4)} point_count=${sceneState.promptPoints.length}`
+          );
+        } catch (error) {
+          logMessage(sceneEls.statusLog, String(error));
+        }
+      }
+
       function renderSceneMaskQueue() {
         if (!sceneState.queuedMasks.length) {
           sceneEls.maskSummary.textContent = "No masks selected.";
@@ -1351,7 +1493,21 @@
         }
         sceneEls.maskSummary.textContent = `${sceneState.queuedMasks.length} mask(s) queued for scene generation.`;
         sceneEls.maskList.innerHTML = sceneState.queuedMasks
-          .map((file, index) => `<div class="mask-chip"><strong>Mask ${index}</strong><div class="muted">${file.name}</div></div>`)
+          .map((item, index) => {
+            const pointMeta =
+              item.source === "interactive" && item.pointCount
+                ? `<div class="muted">prompt points: ${item.pointCount}</div>`
+                : "";
+            return `
+              <div class="mask-chip">
+                <strong>Mask ${index}</strong>
+                <div class="muted">${item.name}</div>
+                <div class="muted">source: ${item.source}</div>
+                ${pointMeta}
+                <button class="queue-remove" type="button" data-index="${index}">Remove</button>
+              </div>
+            `;
+          })
           .join("");
       }
 
@@ -1359,9 +1515,10 @@
         sceneEls.form.reset();
         clearElementImage(sceneEls.imagePreview);
         clearElementImage(sceneEls.maskPreview);
-        hideMarker(sceneEls.marker);
-        sceneState.currentGeneratedMaskFile = null;
+        resetScenePromptState();
+        setScenePointMode("positive");
         sceneState.queuedMasks = [];
+        sceneEls.maskInput.value = "";
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, "Ready.");
         resetSceneResult();
@@ -1475,20 +1632,20 @@
 
       sceneEls.imageInput.addEventListener("change", () => {
         setPreviewFromInput(sceneEls.imageInput, sceneEls.imagePreview);
-        clearElementImage(sceneEls.maskPreview);
-        hideMarker(sceneEls.marker);
-        sceneState.currentGeneratedMaskFile = null;
+        resetScenePromptState();
         sceneState.queuedMasks = [];
         sceneEls.maskInput.value = "";
+        setScenePointMode("positive");
         renderSceneMaskQueue();
       });
 
       sceneEls.maskInput.addEventListener("change", () => {
-        sceneState.queuedMasks = Array.from(sceneEls.maskInput.files || []);
-        sceneState.currentGeneratedMaskFile = null;
-        hideMarker(sceneEls.marker);
+        sceneState.queuedMasks = Array.from(sceneEls.maskInput.files || []).map((file) =>
+          normalizeQueuedMask(file, { source: "manual" })
+        );
+        resetScenePromptState({ keepMaskPreview: false });
         if (sceneState.queuedMasks[0]) {
-          setPreviewFromFile(sceneState.queuedMasks[0], sceneEls.maskPreview);
+          setPreviewFromFile(sceneState.queuedMasks[0].file, sceneEls.maskPreview);
         } else {
           clearElementImage(sceneEls.maskPreview);
         }
@@ -1496,7 +1653,15 @@
         logMessage(sceneEls.statusLog, sceneState.queuedMasks.length ? `Loaded ${sceneState.queuedMasks.length} manual mask(s).` : "No manual masks loaded.");
       });
 
-      sceneEls.imagePreview.addEventListener("click", async (event) => {
+      sceneEls.imagePreview.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+      });
+
+      sceneEls.imagePreview.addEventListener("mousedown", async (event) => {
+        if (event.button !== 0 && event.button !== 2) {
+          return;
+        }
+        event.preventDefault();
         if (!sceneEls.imageInput.files.length) {
           logMessage(sceneEls.statusLog, "Please upload an image first.");
           return;
@@ -1509,17 +1674,13 @@
         if (!point) {
           return;
         }
-        placeMarker(sceneEls.marker, point.displayX, point.displayY);
-        logMessage(sceneEls.statusLog, `Segmenting object at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
-        try {
-          const data = await requestClickMask(sceneEls.imageInput.files[0], point);
-          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
-          sceneEls.maskPreview.src = dataUrl;
-          sceneState.currentGeneratedMaskFile = dataUrlToFile(dataUrl, `scene-generated-${sceneState.queuedMasks.length}.png`);
-          logMessage(sceneEls.statusLog, `Current mask generated. score=${Number(data.score).toFixed(4)}. Add it to the scene queue if it looks correct.`);
-        } catch (error) {
-          logMessage(sceneEls.statusLog, String(error));
-        }
+        const label = event.button === 2 ? 0 : (sceneState.pointMode === "negative" ? 0 : 1);
+        const nextPoint = { ...point, label };
+        sceneState.promptPoints = [...sceneState.promptPoints, nextPoint];
+        renderScenePromptPoints();
+        await rebuildSceneMaskFromPrompt(
+          `Applying ${label === 1 ? "positive" : "negative"} prompt`
+        );
       });
 
       sceneEls.addMaskButton.addEventListener("click", () => {
@@ -1528,10 +1689,46 @@
           return;
         }
         const suffix = String(sceneState.queuedMasks.length).padStart(3, "0");
-        const queuedFile = new File([sceneState.currentGeneratedMaskFile], `mask-${suffix}.png`, { type: sceneState.currentGeneratedMaskFile.type });
-        sceneState.queuedMasks = [...sceneState.queuedMasks, queuedFile];
+        const queuedFile = new File([sceneState.currentGeneratedMaskFile], `mask-${suffix}.png`, {
+          type: sceneState.currentGeneratedMaskFile.type,
+        });
+        sceneState.queuedMasks = [
+          ...sceneState.queuedMasks,
+          normalizeQueuedMask(queuedFile, {
+            source: "interactive",
+            pointCount: sceneState.promptPoints.length,
+          }),
+        ];
+        resetScenePromptState();
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, `Added mask ${suffix} to the scene queue.`);
+      });
+
+      sceneEls.undoPointButton.addEventListener("click", async () => {
+        if (!sceneState.promptPoints.length) {
+          logMessage(sceneEls.statusLog, "No prompt points to undo.");
+          return;
+        }
+        sceneState.promptPoints = sceneState.promptPoints.slice(0, -1);
+        renderScenePromptPoints();
+        await rebuildSceneMaskFromPrompt("Rebuilding mask");
+      });
+
+      sceneEls.positiveModeButton.addEventListener("click", () => setScenePointMode("positive"));
+      sceneEls.negativeModeButton.addEventListener("click", () => setScenePointMode("negative"));
+
+      sceneEls.maskList.addEventListener("click", (event) => {
+        const button = event.target.closest(".queue-remove");
+        if (!button) {
+          return;
+        }
+        const index = Number(button.dataset.index);
+        if (!Number.isInteger(index) || index < 0 || index >= sceneState.queuedMasks.length) {
+          return;
+        }
+        const [removed] = sceneState.queuedMasks.splice(index, 1);
+        renderSceneMaskQueue();
+        logMessage(sceneEls.statusLog, `Removed ${removed?.name || `mask ${index}`}.`);
       });
 
       sceneEls.form.addEventListener("submit", async (event) => {
@@ -1548,8 +1745,8 @@
         const formData = new FormData();
         formData.append("image", sceneEls.imageInput.files[0]);
         formData.append("seed", sceneEls.seedInput.value || "42");
-        sceneState.queuedMasks.forEach((file, index) => {
-          formData.append("masks", file, file.name || `mask-${index}.png`);
+        sceneState.queuedMasks.forEach((item, index) => {
+          formData.append("masks", item.file, item.name || `mask-${index}.png`);
         });
 
         sceneEls.submitButton.disabled = true;
@@ -1572,11 +1769,9 @@
       });
 
       sceneEls.clearMasksButton.addEventListener("click", () => {
-        sceneState.currentGeneratedMaskFile = null;
+        resetScenePromptState();
         sceneState.queuedMasks = [];
         sceneEls.maskInput.value = "";
-        clearElementImage(sceneEls.maskPreview);
-        hideMarker(sceneEls.marker);
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, "Scene mask queue cleared.");
       });
@@ -1693,6 +1888,8 @@
       resetSingleResult();
       resetSceneResult();
       resetAlignmentResult();
+      setScenePointMode("positive");
+      renderScenePromptPoints();
       renderSceneMaskQueue();
       checkHealth();
     </script>
