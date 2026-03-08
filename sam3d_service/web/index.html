@@ -34,7 +34,7 @@
       }
 
       .shell {
-        width: min(1100px, calc(100vw - 32px));
+        width: min(1180px, calc(100vw - 32px));
         margin: 32px auto;
       }
 
@@ -80,7 +80,7 @@
 
       .headline p {
         margin: 0;
-        max-width: 34rem;
+        max-width: 36rem;
         color: var(--muted);
         font-size: 17px;
         line-height: 1.65;
@@ -90,8 +90,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        background:
-          linear-gradient(135deg, rgba(14, 122, 98, 0.12), rgba(255, 252, 244, 0.85));
+        background: linear-gradient(135deg, rgba(14, 122, 98, 0.12), rgba(255, 252, 244, 0.85));
       }
 
       .pill {
@@ -120,11 +119,67 @@
         background: var(--warn);
       }
 
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .meta-card {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.64);
+      }
+
+      .meta-card span {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .tab-strip {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 22px 0 18px;
+      }
+
+      .tab-button {
+        border: none;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        cursor: pointer;
+        color: var(--ink);
+        background: rgba(24, 33, 30, 0.08);
+        transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+      }
+
+      .tab-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .tab-button.active {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
       .grid {
-        margin-top: 20px;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
+        margin-bottom: 20px;
       }
 
       .section-title {
@@ -168,7 +223,7 @@
         flex-wrap: wrap;
       }
 
-      button {
+      button.action {
         border: none;
         border-radius: 999px;
         padding: 12px 18px;
@@ -177,11 +232,11 @@
         transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
       }
 
-      button:hover {
+      button.action:hover {
         transform: translateY(-1px);
       }
 
-      button:disabled {
+      button.action:disabled {
         opacity: 0.55;
         cursor: not-allowed;
         transform: none;
@@ -258,11 +313,6 @@
         color: var(--muted);
       }
 
-      .stack {
-        display: grid;
-        gap: 12px;
-      }
-
       .log {
         min-height: 128px;
         padding: 14px;
@@ -281,28 +331,15 @@
         gap: 12px;
       }
 
-      .meta-card {
-        padding: 14px;
-        border-radius: 16px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.64);
-      }
-
-      .meta-card span {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 12px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-
-      .result-links {
+      .result-links,
+      .mask-list,
+      .object-list {
         display: grid;
         gap: 10px;
       }
 
-      .result-links a {
+      .result-links a,
+      .artifact-link {
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -321,7 +358,25 @@
         background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       }
 
-      @media (max-width: 860px) {
+      .mask-chip,
+      .object-card {
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.68);
+      }
+
+      .mask-chip strong,
+      .object-card strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .object-card .artifact-link {
+        margin-top: 8px;
+      }
+
+      @media (max-width: 900px) {
         .hero,
         .grid,
         .preview-grid,
@@ -330,7 +385,7 @@
         }
 
         .shell {
-          width: min(100vw - 20px, 1100px);
+          width: min(100vw - 20px, 1180px);
           margin: 16px auto 28px;
         }
 
@@ -346,10 +401,10 @@
     <main class="shell">
       <section class="hero">
         <div class="card headline">
-          <div class="eyebrow">SAM 3D Objects / Web Console</div>
-          <h1>上传图片，点一下目标物体，再转成 3D。</h1>
+          <div class="eyebrow">SAM 3D Objects / Notebook Console</div>
+          <h1>把 notebook 里的公开流程，整理成可直接操作的服务页签。</h1>
           <p>
-            这个页面会先调用点击分割接口生成 mask，再把原图和 mask 提交给当前 3D 服务。你也可以跳过点击，直接上传一个手工准备好的 mask。
+            当前页面对应三类能力：单物体 3D、多物体场景 3D、3DB mesh alignment。点击分割会在可用时复用到单物体、多物体和对齐页签。
           </p>
         </div>
         <aside class="card status-board">
@@ -369,240 +424,383 @@
         </aside>
       </section>
 
-      <section class="grid">
-        <section class="card panel">
-          <h2 class="section-title">Submit</h2>
-          <form id="jobForm">
-            <div class="field">
-              <label for="imageInput">Image</label>
-              <input id="imageInput" name="image" type="file" accept="image/*" required />
+      <div class="tab-strip">
+        <button class="tab-button active" data-tab="single">Single Object</button>
+        <button class="tab-button" data-tab="scene">Multi Object Scene</button>
+        <button class="tab-button" data-tab="alignment">3DB Alignment</button>
+      </div>
+
+      <section id="tab-single" class="tab-panel active">
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">Single Object</h2>
+            <form id="singleForm">
+              <div class="field">
+                <label for="singleImageInput">Image</label>
+                <input id="singleImageInput" type="file" accept="image/*" required />
+              </div>
+              <div class="field">
+                <label for="singleMaskInput">Manual Mask (optional)</label>
+                <input id="singleMaskInput" type="file" accept="image/*" />
+              </div>
+              <div class="field">
+                <label for="singleSeedInput">Seed</label>
+                <input id="singleSeedInput" type="number" value="42" step="1" />
+              </div>
+              <p class="note">对应 `demo_single_object.ipynb`。上传图片后可点击右侧图像生成 mask，或手工上传 mask。</p>
+              <div class="actions">
+                <button id="singleSubmitButton" class="action primary" type="submit">Submit Single Object</button>
+                <button id="singleClearMaskButton" class="action secondary" type="button">Clear Generated Mask</button>
+                <button id="singleResetButton" class="action secondary" type="button">Reset</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card panel">
+            <h2 class="section-title">Preview</h2>
+            <div class="preview-grid">
+              <div class="preview">
+                <strong>Image (click to segment)</strong>
+                <div class="preview-shell">
+                  <img id="singleImagePreview" alt="Single object image preview" class="clickable" />
+                  <div id="singleMarker" class="marker"></div>
+                </div>
+              </div>
+              <div class="preview">
+                <strong>Mask</strong>
+                <div class="preview-shell">
+                  <img id="singleMaskPreview" alt="Single object mask preview" />
+                </div>
+              </div>
             </div>
-            <div class="field">
-              <label for="maskInput">Manual Mask (optional)</label>
-              <input id="maskInput" name="mask" type="file" accept="image/*" />
-            </div>
-            <div class="field">
-              <label for="seedInput">Seed</label>
-              <input id="seedInput" name="seed" type="number" value="42" step="1" />
-            </div>
-            <p class="note">
-              默认流程：先上传图片，再点击右侧预览中的目标物体生成 mask，然后提交 3D 任务。
-            </p>
-            <div class="actions">
-              <button id="submitButton" class="primary" type="submit">Submit 3D Job</button>
-              <button id="clearMaskButton" class="secondary" type="button">Clear Generated Mask</button>
-              <button id="resetButton" class="secondary" type="button">Reset</button>
-            </div>
-          </form>
+            <p class="note" id="singleClickHint">上传图片后，点击左侧预览中的目标区域。服务会用点提示生成 mask。</p>
+          </section>
         </section>
 
-        <section class="card panel">
-          <h2 class="section-title">Preview</h2>
-          <div class="preview-grid">
-            <div class="preview">
-              <strong>Image (click to segment)</strong>
-              <div class="preview-shell">
-                <img id="imagePreview" alt="Selected image preview" class="clickable" />
-                <div id="clickMarker" class="marker"></div>
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">Status</h2>
+            <div id="singleStatusLog" class="log">Ready.</div>
+          </section>
+          <section class="card panel">
+            <h2 class="section-title">Result</h2>
+            <div class="stack">
+              <div class="meta">
+                <div class="meta-card"><span>Translation</span><div id="singleTranslationValue" class="muted">-</div></div>
+                <div class="meta-card"><span>Scale</span><div id="singleScaleValue" class="muted">-</div></div>
+                <div class="meta-card"><span>Rotation</span><div id="singleRotationValue" class="muted">-</div></div>
+                <div class="meta-card"><span>Timing</span><div id="singleTimingValue" class="muted">-</div></div>
               </div>
+              <div id="singleResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
             </div>
-            <div class="preview">
-              <strong>Mask</strong>
-              <div class="preview-shell">
-                <img id="maskPreview" alt="Selected or generated mask preview" />
-              </div>
-            </div>
-          </div>
-          <p class="note" id="clickHint">
-            上传图片后，点击左侧预览中的目标区域。服务会用点提示生成 mask。
-          </p>
+          </section>
         </section>
       </section>
 
-      <section class="grid">
-        <section class="card panel">
-          <h2 class="section-title">Status</h2>
-          <div id="statusLog" class="log">Ready.</div>
+      <section id="tab-scene" class="tab-panel">
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">Multi Object Scene</h2>
+            <form id="sceneForm">
+              <div class="field">
+                <label for="sceneImageInput">Image</label>
+                <input id="sceneImageInput" type="file" accept="image/*" required />
+              </div>
+              <div class="field">
+                <label for="sceneMaskInput">Manual Masks (optional, multiple)</label>
+                <input id="sceneMaskInput" type="file" accept="image/*" multiple />
+              </div>
+              <div class="field">
+                <label for="sceneSeedInput">Seed</label>
+                <input id="sceneSeedInput" type="number" value="42" step="1" />
+              </div>
+              <p class="note">
+                对应 `demo_multi_object.ipynb`。你可以手工上传多个 mask，或者反复点击图像生成当前 mask，再点 `Add Current Mask` 把它加入场景对象列表。
+              </p>
+              <div class="actions">
+                <button id="sceneAddMaskButton" class="action secondary" type="button">Add Current Mask</button>
+                <button id="sceneSubmitButton" class="action primary" type="submit">Submit Scene Job</button>
+                <button id="sceneClearMasksButton" class="action secondary" type="button">Clear Scene Masks</button>
+                <button id="sceneResetButton" class="action secondary" type="button">Reset</button>
+              </div>
+            </form>
+            <div class="stack" style="margin-top: 20px;">
+              <div class="meta-card">
+                <span>Queued Masks</span>
+                <div id="sceneMaskSummary">No masks selected.</div>
+              </div>
+              <div id="sceneMaskList" class="mask-list"><span class="muted">No masks queued.</span></div>
+            </div>
+          </section>
+
+          <section class="card panel">
+            <h2 class="section-title">Scene Mask Builder</h2>
+            <div class="preview-grid">
+              <div class="preview">
+                <strong>Image (click to segment)</strong>
+                <div class="preview-shell">
+                  <img id="sceneImagePreview" alt="Scene image preview" class="clickable" />
+                  <div id="sceneMarker" class="marker"></div>
+                </div>
+              </div>
+              <div class="preview">
+                <strong>Current Mask</strong>
+                <div class="preview-shell">
+                  <img id="sceneMaskPreview" alt="Current scene mask preview" />
+                </div>
+              </div>
+            </div>
+            <p class="note" id="sceneClickHint">点击图像后会生成当前 mask，再通过 `Add Current Mask` 加入场景队列。</p>
+          </section>
         </section>
 
-        <section class="card panel">
-          <h2 class="section-title">Result</h2>
-          <div class="stack">
-            <div class="meta">
-              <div class="meta-card"><span>Translation</span><div id="translationValue" class="muted">-</div></div>
-              <div class="meta-card"><span>Scale</span><div id="scaleValue" class="muted">-</div></div>
-              <div class="meta-card"><span>Rotation</span><div id="rotationValue" class="muted">-</div></div>
-              <div class="meta-card"><span>Timing</span><div id="timingValue" class="muted">-</div></div>
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">Status</h2>
+            <div id="sceneStatusLog" class="log">Ready.</div>
+          </section>
+          <section class="card panel">
+            <h2 class="section-title">Result</h2>
+            <div class="stack">
+              <div class="meta">
+                <div class="meta-card"><span>Objects</span><div id="sceneObjectCount" class="muted">-</div></div>
+                <div class="meta-card"><span>Timing</span><div id="sceneTimingValue" class="muted">-</div></div>
+              </div>
+              <div id="sceneObjectList" class="object-list"><span class="muted">No scene objects yet.</span></div>
+              <div id="sceneResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
             </div>
-            <div class="result-links" id="resultLinks">
-              <span class="muted">No artifacts yet.</span>
+          </section>
+        </section>
+      </section>
+
+      <section id="tab-alignment" class="tab-panel">
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">3DB Mesh Alignment</h2>
+            <form id="alignmentForm">
+              <div class="field">
+                <label for="alignmentImageInput">Image</label>
+                <input id="alignmentImageInput" type="file" accept="image/*" required />
+              </div>
+              <div class="field">
+                <label for="alignmentMaskInput">Manual Mask (optional)</label>
+                <input id="alignmentMaskInput" type="file" accept="image/*" />
+              </div>
+              <div class="field">
+                <label for="alignmentMeshInput">3DB Mesh (.ply)</label>
+                <input id="alignmentMeshInput" type="file" accept=".ply" required />
+              </div>
+              <div class="field">
+                <label for="alignmentFocalInput">Focal Length JSON (optional)</label>
+                <input id="alignmentFocalInput" type="file" accept="application/json,.json" />
+              </div>
+              <p class="note">
+                对应 `demo_3db_mesh_alignment.ipynb` 的对齐流程。上传图片、mask 和人体 mesh，可选传入 `focal_length.json`。如果点击分割可用，也可以直接点击右侧图像生成 mask。
+              </p>
+              <div class="actions">
+                <button id="alignmentSubmitButton" class="action primary" type="submit">Submit Alignment Job</button>
+                <button id="alignmentClearMaskButton" class="action secondary" type="button">Clear Generated Mask</button>
+                <button id="alignmentResetButton" class="action secondary" type="button">Reset</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card panel">
+            <h2 class="section-title">Alignment Preview</h2>
+            <div class="preview-grid">
+              <div class="preview">
+                <strong>Image (click to segment)</strong>
+                <div class="preview-shell">
+                  <img id="alignmentImagePreview" alt="Alignment image preview" class="clickable" />
+                  <div id="alignmentMarker" class="marker"></div>
+                </div>
+              </div>
+              <div class="preview">
+                <strong>Mask</strong>
+                <div class="preview-shell">
+                  <img id="alignmentMaskPreview" alt="Alignment mask preview" />
+                </div>
+              </div>
             </div>
-          </div>
+            <p class="note" id="alignmentClickHint">点击图像可生成对齐用的 mask；如果分割不可用，请手工上传 mask。</p>
+          </section>
+        </section>
+
+        <section class="grid">
+          <section class="card panel">
+            <h2 class="section-title">Status</h2>
+            <div id="alignmentStatusLog" class="log">Ready.</div>
+          </section>
+          <section class="card panel">
+            <h2 class="section-title">Result</h2>
+            <div class="stack">
+              <div class="meta">
+                <div class="meta-card"><span>Scale Factor</span><div id="alignmentScaleFactor" class="muted">-</div></div>
+                <div class="meta-card"><span>Focal Length</span><div id="alignmentFocalValue" class="muted">-</div></div>
+                <div class="meta-card"><span>Target Points</span><div id="alignmentTargetPoints" class="muted">-</div></div>
+                <div class="meta-card"><span>Timing</span><div id="alignmentTimingValue" class="muted">-</div></div>
+              </div>
+              <div class="meta-card">
+                <span>Translation</span>
+                <div id="alignmentTranslationValue" class="muted">-</div>
+              </div>
+              <div id="alignmentResultLinks" class="result-links"><span class="muted">No artifacts yet.</span></div>
+            </div>
+          </section>
         </section>
       </section>
     </main>
 
     <script>
-      const state = {
-        currentJobId: null,
-        pollTimer: null,
+      const appState = {
         segmentationAvailable: false,
-        generatedMaskFile: null,
-        clickPoint: null,
+        activeTab: "single",
       };
 
       const healthPill = document.getElementById("healthPill");
       const serviceInfo = document.getElementById("serviceInfo");
       const jobInfo = document.getElementById("jobInfo");
-      const statusLog = document.getElementById("statusLog");
-      const resultLinks = document.getElementById("resultLinks");
-      const translationValue = document.getElementById("translationValue");
-      const rotationValue = document.getElementById("rotationValue");
-      const scaleValue = document.getElementById("scaleValue");
-      const timingValue = document.getElementById("timingValue");
-      const form = document.getElementById("jobForm");
-      const submitButton = document.getElementById("submitButton");
-      const resetButton = document.getElementById("resetButton");
-      const clearMaskButton = document.getElementById("clearMaskButton");
-      const imageInput = document.getElementById("imageInput");
-      const maskInput = document.getElementById("maskInput");
-      const imagePreview = document.getElementById("imagePreview");
-      const maskPreview = document.getElementById("maskPreview");
-      const clickHint = document.getElementById("clickHint");
-      const clickMarker = document.getElementById("clickMarker");
+
+      const singleState = {
+        pollTimer: null,
+        generatedMaskFile: null,
+      };
+
+      const sceneState = {
+        pollTimer: null,
+        currentGeneratedMaskFile: null,
+        queuedMasks: [],
+      };
+
+      const alignmentState = {
+        pollTimer: null,
+        generatedMaskFile: null,
+      };
+
+      const singleEls = {
+        form: document.getElementById("singleForm"),
+        imageInput: document.getElementById("singleImageInput"),
+        maskInput: document.getElementById("singleMaskInput"),
+        seedInput: document.getElementById("singleSeedInput"),
+        imagePreview: document.getElementById("singleImagePreview"),
+        maskPreview: document.getElementById("singleMaskPreview"),
+        marker: document.getElementById("singleMarker"),
+        clickHint: document.getElementById("singleClickHint"),
+        statusLog: document.getElementById("singleStatusLog"),
+        resultLinks: document.getElementById("singleResultLinks"),
+        translation: document.getElementById("singleTranslationValue"),
+        rotation: document.getElementById("singleRotationValue"),
+        scale: document.getElementById("singleScaleValue"),
+        timing: document.getElementById("singleTimingValue"),
+        submitButton: document.getElementById("singleSubmitButton"),
+        clearMaskButton: document.getElementById("singleClearMaskButton"),
+        resetButton: document.getElementById("singleResetButton"),
+      };
+
+      const sceneEls = {
+        form: document.getElementById("sceneForm"),
+        imageInput: document.getElementById("sceneImageInput"),
+        maskInput: document.getElementById("sceneMaskInput"),
+        seedInput: document.getElementById("sceneSeedInput"),
+        imagePreview: document.getElementById("sceneImagePreview"),
+        maskPreview: document.getElementById("sceneMaskPreview"),
+        marker: document.getElementById("sceneMarker"),
+        clickHint: document.getElementById("sceneClickHint"),
+        statusLog: document.getElementById("sceneStatusLog"),
+        resultLinks: document.getElementById("sceneResultLinks"),
+        objectList: document.getElementById("sceneObjectList"),
+        objectCount: document.getElementById("sceneObjectCount"),
+        timing: document.getElementById("sceneTimingValue"),
+        maskSummary: document.getElementById("sceneMaskSummary"),
+        maskList: document.getElementById("sceneMaskList"),
+        addMaskButton: document.getElementById("sceneAddMaskButton"),
+        submitButton: document.getElementById("sceneSubmitButton"),
+        clearMasksButton: document.getElementById("sceneClearMasksButton"),
+        resetButton: document.getElementById("sceneResetButton"),
+      };
+
+      const alignmentEls = {
+        form: document.getElementById("alignmentForm"),
+        imageInput: document.getElementById("alignmentImageInput"),
+        maskInput: document.getElementById("alignmentMaskInput"),
+        meshInput: document.getElementById("alignmentMeshInput"),
+        focalInput: document.getElementById("alignmentFocalInput"),
+        imagePreview: document.getElementById("alignmentImagePreview"),
+        maskPreview: document.getElementById("alignmentMaskPreview"),
+        marker: document.getElementById("alignmentMarker"),
+        clickHint: document.getElementById("alignmentClickHint"),
+        statusLog: document.getElementById("alignmentStatusLog"),
+        resultLinks: document.getElementById("alignmentResultLinks"),
+        scaleFactor: document.getElementById("alignmentScaleFactor"),
+        focalValue: document.getElementById("alignmentFocalValue"),
+        targetPoints: document.getElementById("alignmentTargetPoints"),
+        timing: document.getElementById("alignmentTimingValue"),
+        translation: document.getElementById("alignmentTranslationValue"),
+        submitButton: document.getElementById("alignmentSubmitButton"),
+        clearMaskButton: document.getElementById("alignmentClearMaskButton"),
+        resetButton: document.getElementById("alignmentResetButton"),
+      };
 
       function setHealth(ok, text, details) {
         healthPill.innerHTML = `<span class="dot ${ok ? "ok" : "err"}"></span><span>${text}</span>`;
         serviceInfo.textContent = details;
       }
 
-      function log(message) {
-        statusLog.textContent = message;
+      function setCurrentJob(jobId, status) {
+        jobInfo.textContent = jobId ? `${jobId} (${status})` : "No job submitted";
       }
 
-      function resetResult() {
-        translationValue.textContent = "-";
-        rotationValue.textContent = "-";
-        scaleValue.textContent = "-";
-        timingValue.textContent = "-";
-        resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
+      function setTab(tabId) {
+        appState.activeTab = tabId;
+        document.querySelectorAll(".tab-button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.tab === tabId);
+        });
+        document.querySelectorAll(".tab-panel").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `tab-${tabId}`);
+        });
       }
 
-      function setPreview(input, imgEl) {
+      function logMessage(el, message) {
+        el.textContent = message;
+      }
+
+      function formatList(values) {
+        if (!values || !values.length) {
+          return "-";
+        }
+        return values.map((value) => Number(value).toFixed(4)).join(", ");
+      }
+
+      function clearElementImage(imgEl) {
+        imgEl.removeAttribute("src");
+      }
+
+      function setPreviewFromInput(input, imgEl) {
         const [file] = input.files || [];
         if (!file) {
-          imgEl.removeAttribute("src");
+          clearElementImage(imgEl);
           return;
         }
+        setPreviewFromFile(file, imgEl);
+      }
+
+      function setPreviewFromFile(file, imgEl) {
         const url = URL.createObjectURL(file);
         imgEl.src = url;
         imgEl.onload = () => URL.revokeObjectURL(url);
       }
 
-      async function checkHealth() {
-        try {
-          const res = await fetch("/healthz");
-          const data = await res.json();
-          state.segmentationAvailable = Boolean(data.click_segmentation_checkpoint_ready);
-          const ready = Boolean(res.ok && data.model_loaded);
-          const segmentText = `segment_checkpoint=${data.click_segmentation_checkpoint_ready} segment_loaded=${data.click_segmentation_model_loaded}`;
-          setHealth(
-            ready,
-            ready ? "Service ready" : "Service not ready",
-            `device=${data.device} ${segmentText}`,
-          );
-          clickHint.textContent = state.segmentationAvailable
-            ? "上传图片后可直接点击目标区域，服务会自动生成 mask。"
-            : "点击分割当前不可用，请准备 Segment Anything checkpoint，或手工上传 mask。";
-        } catch (error) {
-          state.segmentationAvailable = false;
-          setHealth(false, "Service unreachable", String(error));
-          clickHint.textContent = "服务不可达。";
-        }
+      function placeMarker(markerEl, x, y) {
+        markerEl.style.left = `${x}px`;
+        markerEl.style.top = `${y}px`;
+        markerEl.style.display = "block";
       }
 
-      async function submitJob(event) {
-        event.preventDefault();
-        if (!imageInput.files.length) {
-          log("Please choose an image.");
-          return;
-        }
-
-        const manualMask = maskInput.files[0] || null;
-        const maskToSend = manualMask || state.generatedMaskFile;
-        if (!maskToSend) {
-          log("Please upload a mask or click the image to generate one.");
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append("image", imageInput.files[0]);
-        formData.append("mask", maskToSend, maskToSend.name || "generated-mask.png");
-        formData.append("seed", document.getElementById("seedInput").value || "42");
-
-        submitButton.disabled = true;
-        resetResult();
-        log("Submitting 3D job...");
-
-        try {
-          const res = await fetch("/jobs", { method: "POST", body: formData });
-          const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.detail || "Failed to submit job.");
-          }
-          state.currentJobId = data.job_id;
-          jobInfo.textContent = `${data.job_id} (${data.status})`;
-          log(`Job ${data.job_id} queued. Polling...`);
-          startPolling(data.job_id);
-        } catch (error) {
-          log(String(error));
-        } finally {
-          submitButton.disabled = false;
-        }
+      function hideMarker(markerEl) {
+        markerEl.style.display = "none";
       }
 
-      async function handleImageClick(event) {
-        if (!imageInput.files.length) {
-          log("Please upload an image first.");
-          return;
-        }
-        if (!state.segmentationAvailable) {
-          log("Click segmentation is not ready on the server. Upload a mask manually or add the SAM checkpoint.");
-          return;
-        }
-
-        const point = computeImagePoint(event, imagePreview);
-        if (!point) {
-          return;
-        }
-
-        placeMarker(point.displayX, point.displayY);
-        state.clickPoint = point;
-        log(`Segmenting object at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
-
-        const formData = new FormData();
-        formData.append("image", imageInput.files[0]);
-        formData.append("x", String(point.imageX));
-        formData.append("y", String(point.imageY));
-        formData.append("label", "1");
-
-        try {
-          const res = await fetch("/segment/click", { method: "POST", body: formData });
-          const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.detail || "Failed to generate mask.");
-          }
-          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
-          maskPreview.src = dataUrl;
-          state.generatedMaskFile = dataUrlToFile(dataUrl, "generated-mask.png");
-          maskInput.value = "";
-          log(`Mask generated. score=${Number(data.score).toFixed(4)}`);
-        } catch (error) {
-          log(String(error));
-        }
-      }
-
-      function computeImagePoint(event, imageEl) {
+      function computeImagePoint(event, imageEl, logEl) {
         if (!imageEl.naturalWidth || !imageEl.naturalHeight) {
           return null;
         }
@@ -625,7 +823,7 @@
         const localX = event.clientX - rect.left - offsetX;
         const localY = event.clientY - rect.top - offsetY;
         if (localX < 0 || localY < 0 || localX > renderWidth || localY > renderHeight) {
-          log("Please click inside the visible image area.");
+          logMessage(logEl, "Please click inside the visible image area.");
           return null;
         }
 
@@ -635,23 +833,6 @@
           displayX: offsetX + localX,
           displayY: offsetY + localY,
         };
-      }
-
-      function placeMarker(x, y) {
-        clickMarker.style.left = `${x}px`;
-        clickMarker.style.top = `${y}px`;
-        clickMarker.style.display = "block";
-      }
-
-      function clearGeneratedMask(preserveManualMask = true) {
-        state.generatedMaskFile = null;
-        clickMarker.style.display = "none";
-        if (!(preserveManualMask && maskInput.files.length)) {
-          maskPreview.removeAttribute("src");
-        }
-        if (!maskInput.files.length) {
-          log("Generated mask cleared.");
-        }
       }
 
       function dataUrlToFile(dataUrl, filename) {
@@ -665,108 +846,564 @@
         return new File([bytes], filename, { type: mime });
       }
 
-      function startPolling(jobId) {
-        if (state.pollTimer) {
-          clearInterval(state.pollTimer);
-        }
-        pollJob(jobId);
-        state.pollTimer = setInterval(() => pollJob(jobId), 5000);
-      }
-
-      async function pollJob(jobId) {
+      async function checkHealth() {
         try {
-          const res = await fetch(`/jobs/${jobId}`);
+          const res = await fetch("/healthz");
           const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.detail || "Failed to fetch job status.");
-          }
-
-          jobInfo.textContent = `${data.job_id} (${data.status})`;
-
-          if (data.status === "queued" || data.status === "running") {
-            log(`Job ${data.job_id} is ${data.status}.`);
-            return;
-          }
-
-          if (state.pollTimer) {
-            clearInterval(state.pollTimer);
-            state.pollTimer = null;
-          }
-
-          if (data.status === "failed") {
-            log(`Job failed: ${data.error || "Unknown error"}`);
-            return;
-          }
-
-          renderResult(data.result);
-          log(`Job ${data.job_id} finished successfully.`);
+          appState.segmentationAvailable = Boolean(data.click_segmentation_checkpoint_ready);
+          const ready = Boolean(res.ok && data.model_loaded);
+          const segmentText = `segment_checkpoint=${data.click_segmentation_checkpoint_ready} segment_loaded=${data.click_segmentation_model_loaded}`;
+          setHealth(ready, ready ? "Service ready" : "Service not ready", `device=${data.device} ${segmentText}`);
+          const clickHintText = appState.segmentationAvailable
+            ? "点击分割可用。上传图片后直接点击目标区域即可生成 mask。"
+            : "点击分割当前不可用，请准备 Segment Anything checkpoint，或手工上传 mask。";
+          singleEls.clickHint.textContent = clickHintText;
+          sceneEls.clickHint.textContent = clickHintText.replace("即可", "，再点 Add Current Mask 即可");
+          alignmentEls.clickHint.textContent = clickHintText;
         } catch (error) {
-          log(String(error));
+          appState.segmentationAvailable = false;
+          setHealth(false, "Service unreachable", String(error));
+          singleEls.clickHint.textContent = "服务不可达。";
+          sceneEls.clickHint.textContent = "服务不可达。";
+          alignmentEls.clickHint.textContent = "服务不可达。";
         }
       }
 
-      function renderResult(result) {
-        translationValue.textContent = formatList(result.translation);
-        rotationValue.textContent = formatList(result.rotation);
-        scaleValue.textContent = formatList(result.scale);
-        const timings = result.timings || {};
-        timingValue.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+      async function requestClickMask(imageFile, point) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        formData.append("x", String(point.imageX));
+        formData.append("y", String(point.imageY));
+        formData.append("label", "1");
+        const res = await fetch("/segment/click", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed to generate mask.");
+        }
+        return data;
+      }
 
-        const links = [
-          result.preview_url ? ["Preview 3D", result.preview_url, "preview-link"] : null,
-          ["Download PLY", result.artifacts.result_ply, ""],
-          ["Download JSON", result.artifacts.result_json, ""],
-          ["Input Image", result.artifacts.input_image, ""],
-          ["Input Mask", result.artifacts.input_mask, ""],
-        ].filter(Boolean);
-        resultLinks.innerHTML = links
-          .map(([label, href, className]) => {
-            const classes = className ? ` class="${className}"` : "";
-            return `<a${classes} href="${href}" target="_blank" rel="noreferrer">${label}</a>`;
+      function flattenArtifacts(value, prefix = "") {
+        if (value === null || value === undefined) {
+          return [];
+        }
+        if (typeof value === "string") {
+          return [{ label: prefix || "Artifact", href: value }];
+        }
+        if (Array.isArray(value)) {
+          return value.flatMap((item, index) => flattenArtifacts(item, `${prefix}[${index}]`));
+        }
+        if (typeof value === "object") {
+          return Object.entries(value).flatMap(([key, item]) => flattenArtifacts(item, prefix ? `${prefix}.${key}` : key));
+        }
+        return [];
+      }
+
+      function renderArtifactLinks(container, result, extraEntries = []) {
+        const entries = [];
+        if (result.preview_url) {
+          entries.push({ label: "Preview 3D", href: result.preview_url, className: "preview-link" });
+        }
+        entries.push(...extraEntries);
+        entries.push(...flattenArtifacts(result.artifacts).map((item) => ({ ...item, className: "" })));
+        const seen = new Set();
+        const uniqueEntries = entries.filter((entry) => {
+          const key = `${entry.href}::${entry.className || ""}`;
+          if (seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
+        });
+        if (!uniqueEntries.length) {
+          container.innerHTML = '<span class="muted">No artifacts yet.</span>';
+          return;
+        }
+        container.innerHTML = uniqueEntries
+          .map((entry) => {
+            const className = entry.className ? ` class="${entry.className}"` : "";
+            return `<a${className} href="${entry.href}" target="_blank" rel="noreferrer">${entry.label}</a>`;
           })
           .join("");
       }
 
-      function formatList(values) {
-        if (!values || !values.length) {
-          return "-";
-        }
-        return values.map((value) => Number(value).toFixed(4)).join(", ");
+      function resetSingleResult() {
+        singleEls.translation.textContent = "-";
+        singleEls.rotation.textContent = "-";
+        singleEls.scale.textContent = "-";
+        singleEls.timing.textContent = "-";
+        singleEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
       }
 
-      function resetForm() {
-        form.reset();
-        imagePreview.removeAttribute("src");
-        maskPreview.removeAttribute("src");
-        clickMarker.style.display = "none";
-        state.generatedMaskFile = null;
-        state.clickPoint = null;
-        jobInfo.textContent = "No job submitted";
-        log("Ready.");
-        resetResult();
-        if (state.pollTimer) {
-          clearInterval(state.pollTimer);
-          state.pollTimer = null;
+      function resetSceneResult() {
+        sceneEls.objectCount.textContent = "-";
+        sceneEls.timing.textContent = "-";
+        sceneEls.objectList.innerHTML = '<span class="muted">No scene objects yet.</span>';
+        sceneEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
+      }
+
+      function resetAlignmentResult() {
+        alignmentEls.scaleFactor.textContent = "-";
+        alignmentEls.focalValue.textContent = "-";
+        alignmentEls.targetPoints.textContent = "-";
+        alignmentEls.timing.textContent = "-";
+        alignmentEls.translation.textContent = "-";
+        alignmentEls.resultLinks.innerHTML = '<span class="muted">No artifacts yet.</span>';
+      }
+
+      function renderSingleResult(result) {
+        singleEls.translation.textContent = formatList(result.translation);
+        singleEls.rotation.textContent = formatList(result.rotation);
+        singleEls.scale.textContent = formatList(result.scale);
+        const timings = result.timings || {};
+        singleEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        renderArtifactLinks(singleEls.resultLinks, result, [
+          { label: "Download PLY", href: result.artifacts.result_ply, className: "" },
+          { label: "Download JSON", href: result.artifacts.result_json, className: "" },
+        ]);
+      }
+
+      function renderSceneResult(result) {
+        const timings = result.timings || {};
+        sceneEls.objectCount.textContent = `${result.objects?.length || 0}`;
+        sceneEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        const objects = result.objects || [];
+        if (!objects.length) {
+          sceneEls.objectList.innerHTML = '<span class="muted">No per-object outputs recorded.</span>';
+        } else {
+          sceneEls.objectList.innerHTML = objects
+            .map((item) => {
+              const linkHtml = item.result_ply
+                ? `<a class="artifact-link" href="${item.result_ply}" target="_blank" rel="noreferrer">Object ${item.index} PLY</a>`
+                : "";
+              return `
+                <div class="object-card">
+                  <strong>Object ${item.index}</strong>
+                  <div class="muted">translation=${formatList(item.translation)}</div>
+                  <div class="muted">rotation=${formatList(item.rotation)}</div>
+                  <div class="muted">scale=${formatList(item.scale)}</div>
+                  ${linkHtml}
+                </div>
+              `;
+            })
+            .join("");
+        }
+        renderArtifactLinks(sceneEls.resultLinks, result, [
+          { label: "Download Scene PLY", href: result.artifacts.result_ply, className: "" },
+          { label: "Download JSON", href: result.artifacts.result_json, className: "" },
+        ]);
+      }
+
+      function renderAlignmentResult(result) {
+        const timings = result.timings || {};
+        const alignment = result.alignment || {};
+        alignmentEls.scaleFactor.textContent = alignment.scale_factor !== undefined ? Number(alignment.scale_factor).toFixed(4) : "-";
+        alignmentEls.focalValue.textContent = alignment.focal_length !== undefined ? Number(alignment.focal_length).toFixed(4) : "-";
+        alignmentEls.targetPoints.textContent = alignment.target_points_count ?? "-";
+        alignmentEls.timing.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
+        alignmentEls.translation.textContent = formatList(alignment.translation || result.translation);
+        renderArtifactLinks(alignmentEls.resultLinks, result, [
+          { label: "Download Aligned Mesh", href: result.artifacts.result_ply, className: "" },
+          { label: "Download JSON", href: result.artifacts.result_json, className: "" },
+        ]);
+      }
+
+      function startPolling(stateObj, jobId, renderResult, logEl) {
+        if (stateObj.pollTimer) {
+          clearInterval(stateObj.pollTimer);
+        }
+        const poll = async () => {
+          try {
+            const res = await fetch(`/jobs/${jobId}`);
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.detail || "Failed to fetch job status.");
+            }
+            setCurrentJob(data.job_id, data.status);
+            if (data.status === "queued" || data.status === "running") {
+              logMessage(logEl, `Job ${data.job_id} is ${data.status}.`);
+              return;
+            }
+            if (stateObj.pollTimer) {
+              clearInterval(stateObj.pollTimer);
+              stateObj.pollTimer = null;
+            }
+            if (data.status === "failed") {
+              logMessage(logEl, `Job failed: ${data.error || "Unknown error"}`);
+              return;
+            }
+            renderResult(data.result);
+            logMessage(logEl, `Job ${data.job_id} finished successfully.`);
+          } catch (error) {
+            logMessage(logEl, String(error));
+          }
+        };
+        poll();
+        stateObj.pollTimer = setInterval(poll, 5000);
+      }
+
+      function stopPolling(stateObj) {
+        if (stateObj.pollTimer) {
+          clearInterval(stateObj.pollTimer);
+          stateObj.pollTimer = null;
         }
       }
 
-      imageInput.addEventListener("change", () => {
-        setPreview(imageInput, imagePreview);
-        clearGeneratedMask(false);
+      function resetSingleForm() {
+        singleEls.form.reset();
+        clearElementImage(singleEls.imagePreview);
+        clearElementImage(singleEls.maskPreview);
+        hideMarker(singleEls.marker);
+        singleState.generatedMaskFile = null;
+        logMessage(singleEls.statusLog, "Ready.");
+        resetSingleResult();
+        stopPolling(singleState);
+        setCurrentJob(null, null);
+      }
+
+      function renderSceneMaskQueue() {
+        if (!sceneState.queuedMasks.length) {
+          sceneEls.maskSummary.textContent = "No masks selected.";
+          sceneEls.maskList.innerHTML = '<span class="muted">No masks queued.</span>';
+          return;
+        }
+        sceneEls.maskSummary.textContent = `${sceneState.queuedMasks.length} mask(s) queued for scene generation.`;
+        sceneEls.maskList.innerHTML = sceneState.queuedMasks
+          .map((file, index) => `<div class="mask-chip"><strong>Mask ${index}</strong><div class="muted">${file.name}</div></div>`)
+          .join("");
+      }
+
+      function resetSceneForm() {
+        sceneEls.form.reset();
+        clearElementImage(sceneEls.imagePreview);
+        clearElementImage(sceneEls.maskPreview);
+        hideMarker(sceneEls.marker);
+        sceneState.currentGeneratedMaskFile = null;
+        sceneState.queuedMasks = [];
+        renderSceneMaskQueue();
+        logMessage(sceneEls.statusLog, "Ready.");
+        resetSceneResult();
+        stopPolling(sceneState);
+        setCurrentJob(null, null);
+      }
+
+      function resetAlignmentForm() {
+        alignmentEls.form.reset();
+        clearElementImage(alignmentEls.imagePreview);
+        clearElementImage(alignmentEls.maskPreview);
+        hideMarker(alignmentEls.marker);
+        alignmentState.generatedMaskFile = null;
+        logMessage(alignmentEls.statusLog, "Ready.");
+        resetAlignmentResult();
+        stopPolling(alignmentState);
+        setCurrentJob(null, null);
+      }
+
+      singleEls.imageInput.addEventListener("change", () => {
+        setPreviewFromInput(singleEls.imageInput, singleEls.imagePreview);
+        if (!singleEls.maskInput.files.length) {
+          clearElementImage(singleEls.maskPreview);
+        }
+        singleState.generatedMaskFile = null;
+        hideMarker(singleEls.marker);
       });
-      maskInput.addEventListener("change", () => {
-        setPreview(maskInput, maskPreview);
-        if (maskInput.files.length) {
-          state.generatedMaskFile = null;
-          clickMarker.style.display = "none";
-          log("Using uploaded mask.");
+
+      singleEls.maskInput.addEventListener("change", () => {
+        setPreviewFromInput(singleEls.maskInput, singleEls.maskPreview);
+        if (singleEls.maskInput.files.length) {
+          singleState.generatedMaskFile = null;
+          hideMarker(singleEls.marker);
+          logMessage(singleEls.statusLog, "Using uploaded mask.");
         }
       });
-      imagePreview.addEventListener("click", handleImageClick);
-      form.addEventListener("submit", submitJob);
-      clearMaskButton.addEventListener("click", () => clearGeneratedMask(true));
-      resetButton.addEventListener("click", resetForm);
 
+      singleEls.imagePreview.addEventListener("click", async (event) => {
+        if (!singleEls.imageInput.files.length) {
+          logMessage(singleEls.statusLog, "Please upload an image first.");
+          return;
+        }
+        if (!appState.segmentationAvailable) {
+          logMessage(singleEls.statusLog, "Click segmentation is not ready on the server. Upload a mask manually or add the SAM checkpoint.");
+          return;
+        }
+        const point = computeImagePoint(event, singleEls.imagePreview, singleEls.statusLog);
+        if (!point) {
+          return;
+        }
+        placeMarker(singleEls.marker, point.displayX, point.displayY);
+        logMessage(singleEls.statusLog, `Segmenting object at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
+        try {
+          const data = await requestClickMask(singleEls.imageInput.files[0], point);
+          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
+          singleEls.maskPreview.src = dataUrl;
+          singleState.generatedMaskFile = dataUrlToFile(dataUrl, "generated-mask.png");
+          singleEls.maskInput.value = "";
+          logMessage(singleEls.statusLog, `Mask generated. score=${Number(data.score).toFixed(4)}`);
+        } catch (error) {
+          logMessage(singleEls.statusLog, String(error));
+        }
+      });
+
+      singleEls.form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!singleEls.imageInput.files.length) {
+          logMessage(singleEls.statusLog, "Please choose an image.");
+          return;
+        }
+        const manualMask = singleEls.maskInput.files[0] || null;
+        const maskToSend = manualMask || singleState.generatedMaskFile;
+        if (!maskToSend) {
+          logMessage(singleEls.statusLog, "Please upload a mask or click the image to generate one.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", singleEls.imageInput.files[0]);
+        formData.append("mask", maskToSend, maskToSend.name || "generated-mask.png");
+        formData.append("seed", singleEls.seedInput.value || "42");
+
+        singleEls.submitButton.disabled = true;
+        resetSingleResult();
+        logMessage(singleEls.statusLog, "Submitting single-object job...");
+        try {
+          const res = await fetch("/jobs", { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to submit job.");
+          }
+          setCurrentJob(data.job_id, data.status);
+          startPolling(singleState, data.job_id, renderSingleResult, singleEls.statusLog);
+        } catch (error) {
+          logMessage(singleEls.statusLog, String(error));
+        } finally {
+          singleEls.submitButton.disabled = false;
+        }
+      });
+
+      singleEls.clearMaskButton.addEventListener("click", () => {
+        singleState.generatedMaskFile = null;
+        hideMarker(singleEls.marker);
+        if (!singleEls.maskInput.files.length) {
+          clearElementImage(singleEls.maskPreview);
+        }
+        logMessage(singleEls.statusLog, "Generated mask cleared.");
+      });
+      singleEls.resetButton.addEventListener("click", resetSingleForm);
+
+      sceneEls.imageInput.addEventListener("change", () => {
+        setPreviewFromInput(sceneEls.imageInput, sceneEls.imagePreview);
+        clearElementImage(sceneEls.maskPreview);
+        hideMarker(sceneEls.marker);
+        sceneState.currentGeneratedMaskFile = null;
+        sceneState.queuedMasks = [];
+        sceneEls.maskInput.value = "";
+        renderSceneMaskQueue();
+      });
+
+      sceneEls.maskInput.addEventListener("change", () => {
+        sceneState.queuedMasks = Array.from(sceneEls.maskInput.files || []);
+        sceneState.currentGeneratedMaskFile = null;
+        hideMarker(sceneEls.marker);
+        if (sceneState.queuedMasks[0]) {
+          setPreviewFromFile(sceneState.queuedMasks[0], sceneEls.maskPreview);
+        } else {
+          clearElementImage(sceneEls.maskPreview);
+        }
+        renderSceneMaskQueue();
+        logMessage(sceneEls.statusLog, sceneState.queuedMasks.length ? `Loaded ${sceneState.queuedMasks.length} manual mask(s).` : "No manual masks loaded.");
+      });
+
+      sceneEls.imagePreview.addEventListener("click", async (event) => {
+        if (!sceneEls.imageInput.files.length) {
+          logMessage(sceneEls.statusLog, "Please upload an image first.");
+          return;
+        }
+        if (!appState.segmentationAvailable) {
+          logMessage(sceneEls.statusLog, "Click segmentation is not ready on the server. Upload masks manually or add the SAM checkpoint.");
+          return;
+        }
+        const point = computeImagePoint(event, sceneEls.imagePreview, sceneEls.statusLog);
+        if (!point) {
+          return;
+        }
+        placeMarker(sceneEls.marker, point.displayX, point.displayY);
+        logMessage(sceneEls.statusLog, `Segmenting object at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
+        try {
+          const data = await requestClickMask(sceneEls.imageInput.files[0], point);
+          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
+          sceneEls.maskPreview.src = dataUrl;
+          sceneState.currentGeneratedMaskFile = dataUrlToFile(dataUrl, `scene-generated-${sceneState.queuedMasks.length}.png`);
+          logMessage(sceneEls.statusLog, `Current mask generated. score=${Number(data.score).toFixed(4)}. Add it to the scene queue if it looks correct.`);
+        } catch (error) {
+          logMessage(sceneEls.statusLog, String(error));
+        }
+      });
+
+      sceneEls.addMaskButton.addEventListener("click", () => {
+        if (!sceneState.currentGeneratedMaskFile) {
+          logMessage(sceneEls.statusLog, "Generate a mask first, or upload masks manually.");
+          return;
+        }
+        const suffix = String(sceneState.queuedMasks.length).padStart(3, "0");
+        const queuedFile = new File([sceneState.currentGeneratedMaskFile], `mask-${suffix}.png`, { type: sceneState.currentGeneratedMaskFile.type });
+        sceneState.queuedMasks = [...sceneState.queuedMasks, queuedFile];
+        renderSceneMaskQueue();
+        logMessage(sceneEls.statusLog, `Added mask ${suffix} to the scene queue.`);
+      });
+
+      sceneEls.form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!sceneEls.imageInput.files.length) {
+          logMessage(sceneEls.statusLog, "Please choose an image.");
+          return;
+        }
+        if (!sceneState.queuedMasks.length) {
+          logMessage(sceneEls.statusLog, "Add at least one mask to the scene queue.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", sceneEls.imageInput.files[0]);
+        formData.append("seed", sceneEls.seedInput.value || "42");
+        sceneState.queuedMasks.forEach((file, index) => {
+          formData.append("masks", file, file.name || `mask-${index}.png`);
+        });
+
+        sceneEls.submitButton.disabled = true;
+        resetSceneResult();
+        logMessage(sceneEls.statusLog, `Submitting scene job with ${sceneState.queuedMasks.length} mask(s)...`);
+        try {
+          const res = await fetch("/scene-jobs", { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to submit scene job.");
+          }
+          setCurrentJob(data.job_id, data.status);
+          startPolling(sceneState, data.job_id, renderSceneResult, sceneEls.statusLog);
+        } catch (error) {
+          logMessage(sceneEls.statusLog, String(error));
+        } finally {
+          sceneEls.submitButton.disabled = false;
+        }
+      });
+
+      sceneEls.clearMasksButton.addEventListener("click", () => {
+        sceneState.currentGeneratedMaskFile = null;
+        sceneState.queuedMasks = [];
+        sceneEls.maskInput.value = "";
+        clearElementImage(sceneEls.maskPreview);
+        hideMarker(sceneEls.marker);
+        renderSceneMaskQueue();
+        logMessage(sceneEls.statusLog, "Scene mask queue cleared.");
+      });
+      sceneEls.resetButton.addEventListener("click", resetSceneForm);
+
+      alignmentEls.imageInput.addEventListener("change", () => {
+        setPreviewFromInput(alignmentEls.imageInput, alignmentEls.imagePreview);
+        if (!alignmentEls.maskInput.files.length) {
+          clearElementImage(alignmentEls.maskPreview);
+        }
+        alignmentState.generatedMaskFile = null;
+        hideMarker(alignmentEls.marker);
+      });
+
+      alignmentEls.maskInput.addEventListener("change", () => {
+        setPreviewFromInput(alignmentEls.maskInput, alignmentEls.maskPreview);
+        if (alignmentEls.maskInput.files.length) {
+          alignmentState.generatedMaskFile = null;
+          hideMarker(alignmentEls.marker);
+          logMessage(alignmentEls.statusLog, "Using uploaded mask.");
+        }
+      });
+
+      alignmentEls.imagePreview.addEventListener("click", async (event) => {
+        if (!alignmentEls.imageInput.files.length) {
+          logMessage(alignmentEls.statusLog, "Please upload an image first.");
+          return;
+        }
+        if (!appState.segmentationAvailable) {
+          logMessage(alignmentEls.statusLog, "Click segmentation is not ready on the server. Upload a mask manually or add the SAM checkpoint.");
+          return;
+        }
+        const point = computeImagePoint(event, alignmentEls.imagePreview, alignmentEls.statusLog);
+        if (!point) {
+          return;
+        }
+        placeMarker(alignmentEls.marker, point.displayX, point.displayY);
+        logMessage(alignmentEls.statusLog, `Generating alignment mask at (${point.imageX.toFixed(1)}, ${point.imageY.toFixed(1)})...`);
+        try {
+          const data = await requestClickMask(alignmentEls.imageInput.files[0], point);
+          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
+          alignmentEls.maskPreview.src = dataUrl;
+          alignmentState.generatedMaskFile = dataUrlToFile(dataUrl, "alignment-generated-mask.png");
+          alignmentEls.maskInput.value = "";
+          logMessage(alignmentEls.statusLog, `Mask generated. score=${Number(data.score).toFixed(4)}`);
+        } catch (error) {
+          logMessage(alignmentEls.statusLog, String(error));
+        }
+      });
+
+      alignmentEls.form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!alignmentEls.imageInput.files.length) {
+          logMessage(alignmentEls.statusLog, "Please choose an image.");
+          return;
+        }
+        if (!alignmentEls.meshInput.files.length) {
+          logMessage(alignmentEls.statusLog, "Please choose a 3DB mesh (.ply).");
+          return;
+        }
+        const manualMask = alignmentEls.maskInput.files[0] || null;
+        const maskToSend = manualMask || alignmentState.generatedMaskFile;
+        if (!maskToSend) {
+          logMessage(alignmentEls.statusLog, "Please upload a mask or click the image to generate one.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", alignmentEls.imageInput.files[0]);
+        formData.append("mask", maskToSend, maskToSend.name || "alignment-mask.png");
+        formData.append("mesh", alignmentEls.meshInput.files[0]);
+        if (alignmentEls.focalInput.files[0]) {
+          formData.append("focal_length_json", alignmentEls.focalInput.files[0]);
+        }
+
+        alignmentEls.submitButton.disabled = true;
+        resetAlignmentResult();
+        logMessage(alignmentEls.statusLog, "Submitting alignment job...");
+        try {
+          const res = await fetch("/alignment-jobs", { method: "POST", body: formData });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Failed to submit alignment job.");
+          }
+          setCurrentJob(data.job_id, data.status);
+          startPolling(alignmentState, data.job_id, renderAlignmentResult, alignmentEls.statusLog);
+        } catch (error) {
+          logMessage(alignmentEls.statusLog, String(error));
+        } finally {
+          alignmentEls.submitButton.disabled = false;
+        }
+      });
+
+      alignmentEls.clearMaskButton.addEventListener("click", () => {
+        alignmentState.generatedMaskFile = null;
+        hideMarker(alignmentEls.marker);
+        if (!alignmentEls.maskInput.files.length) {
+          clearElementImage(alignmentEls.maskPreview);
+        }
+        logMessage(alignmentEls.statusLog, "Generated mask cleared.");
+      });
+      alignmentEls.resetButton.addEventListener("click", resetAlignmentForm);
+
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", () => setTab(button.dataset.tab));
+      });
+
+      resetSingleResult();
+      resetSceneResult();
+      resetAlignmentResult();
+      renderSceneMaskQueue();
       checkHealth();
     </script>
   </body>

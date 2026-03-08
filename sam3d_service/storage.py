@@ -8,17 +8,17 @@ from typing import Any
 
 JOB_META_NAME = "job.json"
 RESULT_JSON_NAME = "result.json"
+JOB_KIND_SINGLE = "single"
+JOB_KIND_SCENE = "scene"
+JOB_KIND_ALIGNMENT = "alignment"
 INPUT_IMAGE_NAME = "input.png"
 INPUT_MASK_NAME = "mask.png"
+INPUT_MESH_NAME = "input_mesh.ply"
+FOCAL_LENGTH_JSON_NAME = "focal_length.json"
 RESULT_PLY_NAME = "result.ply"
+SCENE_RESULT_PLY_NAME = "scene_result.ply"
+ALIGNMENT_RESULT_PLY_NAME = "aligned_mesh.ply"
 ERROR_NAME = "error.txt"
-ALLOWED_ARTIFACTS = {
-    INPUT_IMAGE_NAME,
-    INPUT_MASK_NAME,
-    RESULT_JSON_NAME,
-    RESULT_PLY_NAME,
-    ERROR_NAME,
-}
 
 
 class JobNotFoundError(FileNotFoundError):
@@ -49,23 +49,28 @@ class JobStore:
     def create_job(
         self,
         job_id: str,
-        seed: int,
-        image_bytes: bytes,
-        mask_bytes: bytes,
+        kind: str,
+        files: dict[str, bytes],
+        seed: int | None = None,
+        extra: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         job_dir = self.job_dir(job_id)
         job_dir.mkdir(parents=True, exist_ok=False)
-        (job_dir / INPUT_IMAGE_NAME).write_bytes(image_bytes)
-        (job_dir / INPUT_MASK_NAME).write_bytes(mask_bytes)
+        for name, content in files.items():
+            self._validate_artifact_name(name)
+            (job_dir / name).write_bytes(content)
         payload = {
             "job_id": job_id,
+            "kind": kind,
             "status": "queued",
             "error": None,
-            "seed": int(seed),
+            "seed": int(seed) if seed is not None else None,
             "created_at": utc_now(),
             "started_at": None,
             "finished_at": None,
         }
+        if extra:
+            payload.update(extra)
         self._write_json(job_dir / JOB_META_NAME, payload)
         return payload
 
@@ -100,8 +105,7 @@ class JobStore:
         self._write_json(job_dir / JOB_META_NAME, meta)
 
     def artifact_path(self, job_id: str, name: str) -> Path:
-        if name not in ALLOWED_ARTIFACTS:
-            raise JobNotFoundError(f"Artifact '{name}' is not supported.")
+        self._validate_artifact_name(name)
         return self._require_path(self.job_dir(job_id) / name)
 
     def job_dir(self, job_id: str) -> Path:
@@ -113,6 +117,8 @@ class JobStore:
             "job_dir": job_dir,
             "image": job_dir / INPUT_IMAGE_NAME,
             "mask": job_dir / INPUT_MASK_NAME,
+            "mesh": job_dir / INPUT_MESH_NAME,
+            "focal_length_json": job_dir / FOCAL_LENGTH_JSON_NAME,
             "result_ply": job_dir / RESULT_PLY_NAME,
             "result_json": job_dir / RESULT_JSON_NAME,
             "error": job_dir / ERROR_NAME,
@@ -135,3 +141,8 @@ class JobStore:
         if not path.exists():
             raise JobNotFoundError(f"Path does not exist: {path}")
         return path
+
+    @staticmethod
+    def _validate_artifact_name(name: str) -> None:
+        if not name or Path(name).name != name or name in {".", ".."}:
+            raise JobNotFoundError(f"Invalid artifact name: {name}")

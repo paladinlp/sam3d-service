@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class ArtifactLinks(BaseModel):
-    input_image: str
-    input_mask: str
+class SceneObjectResult(BaseModel):
+    index: int
+    translation: List[float] = Field(default_factory=list)
+    rotation: List[float] = Field(default_factory=list)
+    scale: List[float] = Field(default_factory=list)
     result_ply: Optional[str] = None
-    result_json: Optional[str] = None
 
 
 class JobTimings(BaseModel):
@@ -18,10 +19,13 @@ class JobTimings(BaseModel):
 
 
 class JobResult(BaseModel):
-    translation: List[float]
-    rotation: List[float]
-    scale: List[float]
-    artifacts: ArtifactLinks
+    kind: str
+    translation: List[float] = Field(default_factory=list)
+    rotation: List[float] = Field(default_factory=list)
+    scale: List[float] = Field(default_factory=list)
+    objects: List[SceneObjectResult] = Field(default_factory=list)
+    alignment: Optional[Dict[str, Any]] = None
+    artifacts: Dict[str, Any] = Field(default_factory=dict)
     timings: JobTimings
     preview_url: Optional[str] = None
 
@@ -33,6 +37,7 @@ class JobCreateResponse(BaseModel):
 
 class JobStatusResponse(BaseModel):
     job_id: str
+    kind: str
     status: str
     error: Optional[str] = None
     created_at: str

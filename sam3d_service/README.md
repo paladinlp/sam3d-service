@@ -65,6 +65,8 @@ You can override it with:
 - `GET /healthz`
 - `POST /segment/click`
 - `POST /jobs`
+- `POST /scene-jobs`
+- `POST /alignment-jobs`
 - `GET /jobs/{job_id}`
 - `GET /jobs/{job_id}/preview`
 - `GET /jobs/{job_id}/artifacts/{name}`
@@ -81,6 +83,19 @@ You can override it with:
 - `x`: click x coordinate in original image pixels
 - `y`: click y coordinate in original image pixels
 - `label`: optional point label, default `1`
+
+`POST /scene-jobs` expects `multipart/form-data` with:
+
+- `image`: RGB image file
+- `masks`: one or more mask image files
+- `seed`: optional integer, default `42`
+
+`POST /alignment-jobs` expects `multipart/form-data` with:
+
+- `image`: RGB image file
+- `mask`: binary or grayscale mask file
+- `mesh`: input 3DB `.ply` mesh
+- `focal_length_json`: optional JSON file with a `focal_length` field
 
 ## Local Client Example
 
@@ -104,13 +119,14 @@ http://<server-ip>:8000/
 
 The page lets you:
 
-- upload an image
-- click a foreground object to generate a mask
-- optionally upload a manual mask instead
-- submit a job
-- poll its status
+- run the single-object flow from `demo_single_object.ipynb`
+- run the multi-object scene flow from `demo_multi_object.ipynb`
+- run the 3DB mesh alignment flow from `demo_3db_mesh_alignment.ipynb`
+- click a foreground object to generate a mask when Segment Anything is ready
 - open a separate browser preview for the generated `PLY`
-- download the generated `PLY`
+- download all generated artifacts
 
 The `PLY` preview page ships its `three.js` assets inside `sam3d_service/web/static/`,
 so it does not depend on an external CDN.
+
+The alignment tab adds a `trimesh` dependency on top of the service layer.

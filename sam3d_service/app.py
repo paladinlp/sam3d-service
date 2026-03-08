@@ -6,6 +6,7 @@ import io
 import json
 from pathlib import Path
 from threading import Lock
+from typing import Any
 import uuid
 
 import numpy as np
@@ -18,15 +19,25 @@ from sam3d_service.config import Settings
 from sam3d_service.runner import InferenceRunner
 from sam3d_service.segmenter import ClickSegmenter
 from sam3d_service.schemas import (
-    ArtifactLinks,
     ClickSegmentationResponse,
     HealthResponse,
     JobCreateResponse,
     JobResult,
     JobStatusResponse,
     JobTimings,
+    SceneObjectResult,
 )
-from sam3d_service.storage import ALLOWED_ARTIFACTS, JobNotFoundError, JobStore
+from sam3d_service.storage import (
+    FOCAL_LENGTH_JSON_NAME,
+    INPUT_IMAGE_NAME,
+    INPUT_MASK_NAME,
+    INPUT_MESH_NAME,
+    JOB_KIND_ALIGNMENT,
+    JOB_KIND_SCENE,
+    JOB_KIND_SINGLE,
+    JobNotFoundError,
+    JobStore,
+)
 from sam3d_service.worker import InferenceWorker
 
 
@@ -127,7 +138,98 @@ def create_app() -> FastAPI:
         job_id = uuid.uuid4().hex
         store: JobStore = request.app.state.store
         worker: InferenceWorker = request.app.state.worker
-        store.create_job(job_id, seed=seed, image_bytes=image_bytes, mask_bytes=mask_bytes)
+        store.create_job(
+            job_id,
+            kind=JOB_KIND_SINGLE,
+            files={
+                INPUT_IMAGE_NAME: image_bytes,
+                INPUT_MASK_NAME: mask_bytes,
+            },
+            seed=seed,
+        )
+        await worker.submit(job_id)
+        return JobCreateResponse(job_id=job_id, status="queued")
+
+    @app.post("/scene-jobs", response_model=JobCreateResponse)
+    async def create_scene_job(
+        request: Request,
+        image: UploadFile = File(...),
+        masks: list[UploadFile] = File(...),
+        seed: int = Form(42),
+    ) -> JobCreateResponse:
+        image_bytes, image_size = await _load_image_upload(image)
+        if not masks:
+            raise HTTPException(status_code=400, detail="At least one mask is required.")
+
+        mask_files: dict[str, bytes] = {}
+        for index, mask_upload in enumerate(masks):
+            mask_bytes, mask_size, has_foreground = await _load_mask_upload(mask_upload)
+            if image_size != mask_size:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Mask {index} does not match the image width and height.",
+                )
+            if not has_foreground:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Mask {index} must contain at least one non-zero pixel.",
+                )
+            mask_files[f"mask_{index:03d}.png"] = mask_bytes
+
+        job_id = uuid.uuid4().hex
+        store = request.app.state.store
+        worker = request.app.state.worker
+        store.create_job(
+            job_id,
+            kind=JOB_KIND_SCENE,
+            files={
+                INPUT_IMAGE_NAME: image_bytes,
+                **mask_files,
+            },
+            seed=seed,
+        )
+        await worker.submit(job_id)
+        return JobCreateResponse(job_id=job_id, status="queued")
+
+    @app.post("/alignment-jobs", response_model=JobCreateResponse)
+    async def create_alignment_job(
+        request: Request,
+        image: UploadFile = File(...),
+        mask: UploadFile = File(...),
+        mesh: UploadFile = File(...),
+        focal_length_json: UploadFile | None = File(None),
+    ) -> JobCreateResponse:
+        image_bytes, image_size = await _load_image_upload(image)
+        mask_bytes, mask_size, has_foreground = await _load_mask_upload(mask)
+        if image_size != mask_size:
+            raise HTTPException(
+                status_code=400,
+                detail="Image and mask must have the same width and height.",
+            )
+        if not has_foreground:
+            raise HTTPException(
+                status_code=400,
+                detail="Mask must contain at least one non-zero pixel.",
+            )
+
+        mesh_bytes = await _load_mesh_upload(mesh)
+        focal_bytes = await _load_optional_json_upload(focal_length_json)
+
+        job_id = uuid.uuid4().hex
+        store = request.app.state.store
+        worker = request.app.state.worker
+        files = {
+            INPUT_IMAGE_NAME: image_bytes,
+            INPUT_MASK_NAME: mask_bytes,
+            INPUT_MESH_NAME: mesh_bytes,
+        }
+        if focal_bytes is not None:
+            files[FOCAL_LENGTH_JSON_NAME] = focal_bytes
+        store.create_job(
+            job_id,
+            kind=JOB_KIND_ALIGNMENT,
+            files=files,
+        )
         await worker.submit(job_id)
         return JobCreateResponse(job_id=job_id, status="queued")
 
@@ -143,10 +245,29 @@ def create_app() -> FastAPI:
         result = None
         if result_payload is not None:
             artifacts = _artifact_links(request, job_id, result_payload.get("artifacts", {}))
+            scene_objects = []
+            for item in result_payload.get("objects", []):
+                object_artifact = item.get("result_ply")
+                scene_objects.append(
+                    SceneObjectResult(
+                        index=int(item.get("index", 0)),
+                        translation=item.get("translation", []),
+                        rotation=item.get("rotation", []),
+                        scale=item.get("scale", []),
+                        result_ply=(
+                            str(request.url_for("download_artifact", job_id=job_id, name=object_artifact))
+                            if object_artifact
+                            else None
+                        ),
+                    )
+                )
             result = JobResult(
+                kind=result_payload.get("kind", payload.get("kind", JOB_KIND_SINGLE)),
                 translation=result_payload.get("translation", []),
                 rotation=result_payload.get("rotation", []),
                 scale=result_payload.get("scale", []),
+                objects=scene_objects,
+                alignment=result_payload.get("alignment"),
                 artifacts=artifacts,
                 timings=JobTimings(**result_payload.get("timings", {})),
                 preview_url=_preview_url(request, job_id, result_payload),
@@ -154,6 +275,7 @@ def create_app() -> FastAPI:
 
         return JobStatusResponse(
             job_id=payload["job_id"],
+            kind=payload.get("kind", JOB_KIND_SINGLE),
             status=payload["status"],
             error=payload.get("error"),
             created_at=payload["created_at"],
@@ -201,9 +323,8 @@ def create_app() -> FastAPI:
                 status_code=409,
             )
 
-        artifact_payload = result_payload.get("artifacts", {})
-        result_ply_name = artifact_payload.get("result_ply")
-        if not result_ply_name:
+        preview_name = _preview_artifact_name(result_payload)
+        if not preview_name:
             return _render_preview_page(
                 web_root,
                 {
@@ -219,7 +340,7 @@ def create_app() -> FastAPI:
             )
 
         try:
-            store.artifact_path(job_id, result_ply_name)
+            store.artifact_path(job_id, preview_name)
         except JobNotFoundError as exc:
             return _render_preview_page(
                 web_root,
@@ -235,7 +356,7 @@ def create_app() -> FastAPI:
                 status_code=404,
             )
 
-        model_url = str(request.url_for("download_artifact", job_id=job_id, name=result_ply_name))
+        model_url = str(request.url_for("download_artifact", job_id=job_id, name=preview_name))
         return _render_preview_page(
             web_root,
             {
@@ -251,8 +372,6 @@ def create_app() -> FastAPI:
 
     @app.get("/jobs/{job_id}/artifacts/{name}", name="download_artifact")
     async def download_artifact(job_id: str, name: str, request: Request) -> FileResponse:
-        if name not in ALLOWED_ARTIFACTS:
-            raise HTTPException(status_code=404, detail=f"Unsupported artifact: {name}")
         store: JobStore = request.app.state.store
         try:
             artifact_path = store.artifact_path(job_id, name)
@@ -290,25 +409,64 @@ async def _load_mask_upload(upload: UploadFile) -> tuple[bytes, tuple[int, int],
     return buffer.getvalue(), mask_binary.size, has_foreground
 
 
+async def _load_mesh_upload(upload: UploadFile) -> bytes:
+    raw_bytes = await upload.read()
+    if not raw_bytes:
+        raise HTTPException(status_code=400, detail="Mesh upload is empty.")
+    filename = (upload.filename or "").lower()
+    if not filename.endswith(".ply"):
+        raise HTTPException(status_code=415, detail="Only .ply mesh uploads are supported.")
+    return raw_bytes
+
+
+async def _load_optional_json_upload(upload: UploadFile | None) -> bytes | None:
+    if upload is None:
+        return None
+    raw_bytes = await upload.read()
+    if not raw_bytes:
+        return None
+    try:
+        json.loads(raw_bytes.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid focal length JSON upload.") from exc
+    return raw_bytes
+
+
 def _ensure_image_upload(upload: UploadFile) -> None:
     if upload.content_type is None or not upload.content_type.startswith("image/"):
         raise HTTPException(status_code=415, detail="Only image uploads are supported.")
 
 
-def _artifact_links(request: Request, job_id: str, artifact_payload: dict) -> ArtifactLinks:
-    return ArtifactLinks(
-        input_image=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["input_image"])),
-        input_mask=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["input_mask"])),
-        result_ply=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["result_ply"])),
-        result_json=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["result_json"])),
-    )
+def _artifact_links(request: Request, job_id: str, artifact_payload: dict[str, Any]) -> dict[str, Any]:
+    return _resolve_artifact_value(request, job_id, artifact_payload)
 
 
 def _preview_url(request: Request, job_id: str, result_payload: dict) -> str | None:
-    artifact_payload = result_payload.get("artifacts", {})
-    if not artifact_payload.get("result_ply"):
+    if _preview_artifact_name(result_payload) is None:
         return None
     return str(request.url_for("job_preview", job_id=job_id))
+
+
+def _preview_artifact_name(result_payload: dict[str, Any]) -> str | None:
+    preview_name = result_payload.get("preview_artifact")
+    if preview_name:
+        return preview_name
+    artifact_payload = result_payload.get("artifacts", {})
+    if isinstance(artifact_payload, dict):
+        return artifact_payload.get("result_ply")
+    return None
+
+
+def _resolve_artifact_value(request: Request, job_id: str, value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return str(request.url_for("download_artifact", job_id=job_id, name=value))
+    if isinstance(value, list):
+        return [_resolve_artifact_value(request, job_id, item) for item in value]
+    if isinstance(value, dict):
+        return {key: _resolve_artifact_value(request, job_id, item) for key, item in value.items()}
+    return value
 
 
 def _render_preview_page(web_root: Path, payload: dict, status_code: int = 200) -> HTMLResponse:

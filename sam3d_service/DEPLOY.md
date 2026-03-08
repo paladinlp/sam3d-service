@@ -61,6 +61,7 @@ This installs:
 - Uvicorn
 - multipart upload support
 - requests
+- trimesh
 - Segment Anything
 
 ## 4. Prepare SAM 3D Objects checkpoints
@@ -138,6 +139,7 @@ Expected behavior:
 
 - the service loads the 3D model on startup
 - it serves the web UI at `/`
+- it exposes tabs for single object, multi-object scene, and 3DB alignment
 - it exposes API routes for health, click segmentation, and jobs
 
 ## 8. Verify the service
@@ -210,7 +212,12 @@ Each job directory may contain:
 
 - `input.png`
 - `mask.png`
+- `mask_000.png`, `mask_001.png`, ...
+- `input_mesh.ply`
+- `focal_length.json`
 - `result.ply`
+- `scene_result.ply`
+- `aligned_mesh.ply`
 - `result.json`
 - `error.txt`
 
