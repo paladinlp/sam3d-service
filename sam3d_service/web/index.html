@@ -457,6 +457,60 @@
         font: inherit;
       }
 
+      .queue-overlay {
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        display: grid;
+        gap: 8px;
+        max-width: min(180px, 38%);
+        pointer-events: none;
+      }
+
+      .queue-thumb {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px;
+        border-radius: 14px;
+        background: rgba(12, 18, 18, 0.74);
+        color: #f8f6ef;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 12px 22px rgba(5, 10, 9, 0.24);
+        pointer-events: auto;
+      }
+
+      .queue-thumb img {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .queue-thumb strong {
+        display: block;
+        margin: 0 0 3px;
+        font-size: 12px;
+      }
+
+      .queue-thumb span {
+        display: block;
+        font-size: 11px;
+        color: rgba(248, 246, 239, 0.72);
+      }
+
+      .queue-thumb button {
+        border: none;
+        border-radius: 999px;
+        padding: 6px 10px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f8f6ef;
+        cursor: pointer;
+        font: inherit;
+      }
+
       .media-viewer {
         display: grid;
         gap: 10px;
@@ -709,7 +763,7 @@
                 <span>Queued Masks</span>
                 <div id="sceneMaskSummary">No masks selected.</div>
               </div>
-              <div id="sceneMaskList" class="mask-list"><span class="muted">No masks queued.</span></div>
+              <div id="sceneMaskList" class="mask-list"><span class="muted">Selected objects are pinned on the image preview.</span></div>
             </div>
           </section>
 
@@ -721,6 +775,7 @@
                 <div class="preview-shell">
                   <img id="sceneImagePreview" alt="Scene image preview" class="clickable" />
                   <div id="sceneMarkerLayer" class="marker-layer"></div>
+                  <div id="sceneQueueOverlay" class="queue-overlay"></div>
                 </div>
               </div>
               <div class="preview">
@@ -952,6 +1007,7 @@
         timing: document.getElementById("sceneTimingValue"),
         maskSummary: document.getElementById("sceneMaskSummary"),
         maskList: document.getElementById("sceneMaskList"),
+        queueOverlay: document.getElementById("sceneQueueOverlay"),
         addMaskButton: document.getElementById("sceneAddMaskButton"),
         undoPointButton: document.getElementById("sceneUndoPointButton"),
         positiveModeButton: document.getElementById("scenePositiveModeButton"),
@@ -1445,7 +1501,19 @@
           name: file.name,
           source: metadata.source || "manual",
           pointCount: metadata.pointCount || 0,
+          previewUrl: URL.createObjectURL(file),
         };
+      }
+
+      function revokeQueuedMask(item) {
+        if (item?.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      }
+
+      function clearSceneQueuedMasks() {
+        sceneState.queuedMasks.forEach((item) => revokeQueuedMask(item));
+        sceneState.queuedMasks = [];
       }
 
       function resetScenePromptState({ keepMaskPreview = false } = {}) {
@@ -1488,22 +1556,26 @@
       function renderSceneMaskQueue() {
         if (!sceneState.queuedMasks.length) {
           sceneEls.maskSummary.textContent = "No masks selected.";
-          sceneEls.maskList.innerHTML = '<span class="muted">No masks queued.</span>';
+          sceneEls.maskList.innerHTML = '<span class="muted">Selected objects will appear on top of the image preview.</span>';
+          sceneEls.queueOverlay.innerHTML = "";
           return;
         }
         sceneEls.maskSummary.textContent = `${sceneState.queuedMasks.length} mask(s) queued for scene generation.`;
-        sceneEls.maskList.innerHTML = sceneState.queuedMasks
+        sceneEls.maskList.innerHTML = '<span class="muted">Selected objects are pinned on the image preview.</span>';
+        sceneEls.queueOverlay.innerHTML = sceneState.queuedMasks
           .map((item, index) => {
             const pointMeta =
               item.source === "interactive" && item.pointCount
-                ? `<div class="muted">prompt points: ${item.pointCount}</div>`
+                ? `<span>points: ${item.pointCount}</span>`
                 : "";
             return `
-              <div class="mask-chip">
-                <strong>Mask ${index}</strong>
-                <div class="muted">${item.name}</div>
-                <div class="muted">source: ${item.source}</div>
-                ${pointMeta}
+              <div class="queue-thumb">
+                <img src="${item.previewUrl}" alt="Mask ${index}" />
+                <div>
+                  <strong>Mask ${index}</strong>
+                  <span>${item.source}</span>
+                  ${pointMeta}
+                </div>
                 <button class="queue-remove" type="button" data-index="${index}">Remove</button>
               </div>
             `;
@@ -1517,7 +1589,7 @@
         clearElementImage(sceneEls.maskPreview);
         resetScenePromptState();
         setScenePointMode("positive");
-        sceneState.queuedMasks = [];
+        clearSceneQueuedMasks();
         sceneEls.maskInput.value = "";
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, "Ready.");
@@ -1633,13 +1705,14 @@
       sceneEls.imageInput.addEventListener("change", () => {
         setPreviewFromInput(sceneEls.imageInput, sceneEls.imagePreview);
         resetScenePromptState();
-        sceneState.queuedMasks = [];
+        clearSceneQueuedMasks();
         sceneEls.maskInput.value = "";
         setScenePointMode("positive");
         renderSceneMaskQueue();
       });
 
       sceneEls.maskInput.addEventListener("change", () => {
+        clearSceneQueuedMasks();
         sceneState.queuedMasks = Array.from(sceneEls.maskInput.files || []).map((file) =>
           normalizeQueuedMask(file, { source: "manual" })
         );
@@ -1717,7 +1790,7 @@
       sceneEls.positiveModeButton.addEventListener("click", () => setScenePointMode("positive"));
       sceneEls.negativeModeButton.addEventListener("click", () => setScenePointMode("negative"));
 
-      sceneEls.maskList.addEventListener("click", (event) => {
+      function handleSceneQueueRemove(event) {
         const button = event.target.closest(".queue-remove");
         if (!button) {
           return;
@@ -1727,9 +1800,13 @@
           return;
         }
         const [removed] = sceneState.queuedMasks.splice(index, 1);
+        revokeQueuedMask(removed);
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, `Removed ${removed?.name || `mask ${index}`}.`);
-      });
+      }
+
+      sceneEls.maskList.addEventListener("click", handleSceneQueueRemove);
+      sceneEls.queueOverlay.addEventListener("click", handleSceneQueueRemove);
 
       sceneEls.form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -1770,7 +1847,7 @@
 
       sceneEls.clearMasksButton.addEventListener("click", () => {
         resetScenePromptState();
-        sceneState.queuedMasks = [];
+        clearSceneQueuedMasks();
         sceneEls.maskInput.value = "";
         renderSceneMaskQueue();
         logMessage(sceneEls.statusLog, "Scene mask queue cleared.");
