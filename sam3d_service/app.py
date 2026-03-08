@@ -357,16 +357,18 @@ def create_app() -> FastAPI:
             )
 
         model_url = str(request.url_for("download_artifact", job_id=job_id, name=preview_name))
+        download_name = result_payload.get("artifacts", {}).get("result_ply") or preview_name
+        download_url = str(request.url_for("download_artifact", job_id=job_id, name=download_name))
         return _render_preview_page(
             web_root,
             {
                 "job_id": job_id,
                 "ready": True,
                 "title": "PLY preview",
-                "message": "Drag to orbit, scroll to zoom, and use Reset View to recenter the object.",
+                "message": "Rendering the lightweight preview. Download PLY keeps the original full result.",
                 "status": payload["status"],
                 "model_url": model_url,
-                "download_url": model_url,
+                "download_url": download_url,
             },
         )
 

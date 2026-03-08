@@ -12,6 +12,7 @@ import numpy as np
 from PIL import Image
 
 from sam3d_service.config import Settings
+from sam3d_service.preview_ply import build_preview_ply
 from sam3d_service.storage import (
     ALIGNMENT_RESULT_PLY_NAME,
     FOCAL_LENGTH_JSON_NAME,
@@ -21,6 +22,7 @@ from sam3d_service.storage import (
     JOB_KIND_ALIGNMENT,
     JOB_KIND_SCENE,
     JOB_KIND_SINGLE,
+    PREVIEW_PLY_NAME,
     RESULT_JSON_NAME,
     RESULT_PLY_NAME,
     SCENE_RESULT_PLY_NAME,
@@ -91,6 +93,10 @@ class InferenceRunner:
         inference_seconds = time.perf_counter() - start_time
 
         output["gs"].save_ply(str(job_dir / RESULT_PLY_NAME))
+        preview_artifact = self._maybe_create_preview(
+            job_dir / RESULT_PLY_NAME,
+            job_dir / PREVIEW_PLY_NAME,
+        )
         return {
             "kind": JOB_KIND_SINGLE,
             "translation": self._tensor_to_flat_list(output.get("translation")),
@@ -100,9 +106,10 @@ class InferenceRunner:
                 "input_image": INPUT_IMAGE_NAME,
                 "input_mask": INPUT_MASK_NAME,
                 "result_ply": RESULT_PLY_NAME,
+                "preview_ply": preview_artifact,
                 "result_json": RESULT_JSON_NAME,
             },
-            "preview_artifact": RESULT_PLY_NAME,
+            "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
             },
@@ -145,6 +152,10 @@ class InferenceRunner:
             scene_gs = self._make_scene(*outputs)
             scene_gs.save_ply(str(job_dir / SCENE_RESULT_PLY_NAME))
         inference_seconds = time.perf_counter() - start_time
+        preview_artifact = self._maybe_create_preview(
+            job_dir / SCENE_RESULT_PLY_NAME,
+            job_dir / PREVIEW_PLY_NAME,
+        )
 
         return {
             "kind": JOB_KIND_SCENE,
@@ -154,9 +165,10 @@ class InferenceRunner:
                 "mask_files": [mask_path.name for mask_path in mask_paths],
                 "object_ply_files": object_ply_files,
                 "result_ply": SCENE_RESULT_PLY_NAME,
+                "preview_ply": preview_artifact,
                 "result_json": RESULT_JSON_NAME,
             },
-            "preview_artifact": SCENE_RESULT_PLY_NAME,
+            "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
             },
@@ -210,6 +222,11 @@ class InferenceRunner:
         }
         if focal_length_json_path is not None:
             artifacts["focal_length_json"] = FOCAL_LENGTH_JSON_NAME
+        preview_artifact = self._maybe_create_preview(
+            final_mesh_path,
+            job_dir / PREVIEW_PLY_NAME,
+        )
+        artifacts["preview_ply"] = preview_artifact
 
         return {
             "kind": JOB_KIND_ALIGNMENT,
@@ -217,7 +234,7 @@ class InferenceRunner:
             "scale": [scale_factor],
             "alignment": alignment_payload,
             "artifacts": artifacts,
-            "preview_artifact": ALIGNMENT_RESULT_PLY_NAME,
+            "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
             },
@@ -233,6 +250,18 @@ class InferenceRunner:
 
         self._process_and_save_alignment = process_and_save_alignment
         return self._process_and_save_alignment
+
+    def _maybe_create_preview(self, source_path: Path, preview_path: Path) -> str:
+        try:
+            build_preview_ply(
+                source_path=source_path,
+                output_path=preview_path,
+                max_points=self.settings.preview_max_points,
+                opacity_threshold=self.settings.preview_opacity_threshold,
+            )
+            return preview_path.name
+        except Exception:
+            return source_path.name
 
     @staticmethod
     def _tensor_to_flat_list(value: Any) -> list[float]:

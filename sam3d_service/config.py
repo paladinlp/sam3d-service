@@ -11,6 +11,8 @@ class Settings:
     data_dir: Path
     checkpoint_tag: str
     device: str
+    preview_max_points: int
+    preview_opacity_threshold: float
     segment_device: str
     segment_model_type: str
     segment_checkpoint_env: str | None
@@ -52,6 +54,8 @@ class Settings:
         ).expanduser().resolve()
         checkpoint_tag = os.environ.get("SAM3D_CHECKPOINT_TAG", "hf")
         device = os.environ.get("SAM3D_DEVICE", "cuda")
+        preview_max_points = int(os.environ.get("SAM3D_PREVIEW_MAX_POINTS", "25000"))
+        preview_opacity_threshold = float(os.environ.get("SAM3D_PREVIEW_OPACITY_THRESHOLD", "0.08"))
         segment_device = os.environ.get("SAM3D_SEGMENT_DEVICE", device)
         segment_model_type = os.environ.get("SAM3D_SEGMENT_MODEL_TYPE", "vit_h")
         segment_checkpoint_env = os.environ.get("SAM3D_SEGMENT_CHECKPOINT")
@@ -62,6 +66,8 @@ class Settings:
             data_dir=data_dir,
             checkpoint_tag=checkpoint_tag,
             device=device,
+            preview_max_points=preview_max_points,
+            preview_opacity_threshold=preview_opacity_threshold,
             segment_device=segment_device,
             segment_model_type=segment_model_type,
             segment_checkpoint_env=segment_checkpoint_env,

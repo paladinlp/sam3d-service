@@ -62,6 +62,7 @@ This installs:
 - multipart upload support
 - requests
 - trimesh
+- plyfile
 - Segment Anything
 
 ## 4. Prepare SAM 3D Objects checkpoints
@@ -123,6 +124,8 @@ Defaults are usually enough, but you can set:
 export SAM3D_CHECKPOINT_TAG=hf
 export SAM3D_DEVICE=cuda
 export SAM3D_DATA_DIR=/path/to/job-output
+export SAM3D_PREVIEW_MAX_POINTS=25000
+export SAM3D_PREVIEW_OPACITY_THRESHOLD=0.08
 export SAM3D_HOST=0.0.0.0
 export SAM3D_PORT=8000
 ```
@@ -216,6 +219,7 @@ Each job directory may contain:
 - `input_mesh.ply`
 - `focal_length.json`
 - `result.ply`
+- `preview.ply`
 - `scene_result.ply`
 - `aligned_mesh.ply`
 - `result.json`

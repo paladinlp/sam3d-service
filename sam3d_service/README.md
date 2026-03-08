@@ -56,6 +56,8 @@ You can override it with:
 - `SAM3D_CHECKPOINT_TAG`: checkpoint folder under `checkpoints/` (default: `hf`)
 - `SAM3D_DEVICE`: device string for health reporting (default: `cuda`)
 - `SAM3D_DATA_DIR`: output directory for job files (default: `data/jobs`)
+- `SAM3D_PREVIEW_MAX_POINTS`: max points kept in browser preview PLY (default: `25000`)
+- `SAM3D_PREVIEW_OPACITY_THRESHOLD`: minimum opacity kept when downsampling gaussian PLYs (default: `0.08`)
 - `SAM3D_HOST`: service bind address (default: `0.0.0.0`)
 - `SAM3D_PORT`: service port (default: `8000`)
 
@@ -128,5 +130,8 @@ The page lets you:
 
 The `PLY` preview page ships its `three.js` assets inside `sam3d_service/web/static/`,
 so it does not depend on an external CDN.
+
+The browser preview now loads a lightweight server-generated `preview.ply` when available.
+The download link still points to the original full-resolution result.
 
 The alignment tab adds a `trimesh` dependency on top of the service layer.
