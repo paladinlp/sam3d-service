@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAM 3D Objects Preview</title>
+    <style>
+      :root {
+        --bg: #f1ede3;
+        --paper: rgba(255, 252, 245, 0.88);
+        --ink: #1a211d;
+        --muted: #5c6a64;
+        --line: rgba(26, 33, 29, 0.12);
+        --accent: #0f7a62;
+        --accent-strong: #0a5f4d;
+        --warn: #9a4428;
+        --shadow: 0 30px 70px rgba(20, 28, 25, 0.13);
+        --radius: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+        background:
+          radial-gradient(circle at top left, rgba(15, 122, 98, 0.14), transparent 32%),
+          radial-gradient(circle at top right, rgba(154, 68, 40, 0.12), transparent 28%),
+          linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+      }
+
+      .shell {
+        width: min(1220px, calc(100vw - 28px));
+        margin: 20px auto 28px;
+      }
+
+      .hero,
+      .layout {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+
+      .layout {
+        grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.7fr);
+        margin-top: 18px;
+      }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .headline,
+      .stats,
+      .viewer-card,
+      .detail-card {
+        padding: 24px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(15, 122, 98, 0.08);
+        color: var(--accent-strong);
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 16px 0 10px;
+        font-size: clamp(30px, 5.6vw, 54px);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(26, 33, 29, 0.06);
+        font-size: 14px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--muted);
+      }
+
+      .dot.ok {
+        background: var(--accent);
+      }
+
+      .dot.err {
+        background: var(--warn);
+      }
+
+      .stats {
+        display: grid;
+        gap: 14px;
+        align-content: space-between;
+        background:
+          linear-gradient(135deg, rgba(15, 122, 98, 0.12), rgba(255, 252, 245, 0.88));
+      }
+
+      .stats-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .stat span {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .viewer-card {
+        position: relative;
+        min-height: 70vh;
+        display: grid;
+        gap: 16px;
+      }
+
+      .viewer-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .viewer-toolbar h2,
+      .detail-card h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      a.button,
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 999px;
+        padding: 11px 16px;
+        font: inherit;
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+      }
+
+      a.button:hover,
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      .primary {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .secondary {
+        color: var(--ink);
+        background: rgba(26, 33, 29, 0.07);
+      }
+
+      .viewport {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        min-height: 0;
+        background:
+          radial-gradient(circle at top, rgba(15, 122, 98, 0.1), transparent 42%),
+          linear-gradient(180deg, rgba(250, 248, 242, 0.94) 0%, rgba(236, 232, 223, 0.98) 100%);
+      }
+
+      #viewerCanvas {
+        display: block;
+        width: 100%;
+        height: min(72vh, 820px);
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        color: var(--muted);
+        background: rgba(248, 244, 236, 0.5);
+        transition: opacity 180ms ease, visibility 180ms ease;
+      }
+
+      .overlay.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .overlay-card {
+        max-width: 28rem;
+        padding: 22px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 252, 245, 0.92);
+        box-shadow: 0 18px 36px rgba(20, 28, 25, 0.12);
+      }
+
+      .overlay-card strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+      }
+
+      .detail-card {
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+
+      .detail-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .detail {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(255, 255, 255, 0.64);
+      }
+
+      .detail span {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      @media (max-width: 960px) {
+        .hero,
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .shell {
+          width: min(100vw - 18px, 1220px);
+          margin: 12px auto 22px;
+        }
+
+        .headline,
+        .stats,
+        .viewer-card,
+        .detail-card {
+          padding: 18px;
+        }
+
+        #viewerCanvas {
+          height: min(62vh, 640px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <section class="card headline">
+          <div class="eyebrow">SAM 3D Objects / PLY Preview</div>
+          <h1 id="pageTitle">3D Preview</h1>
+          <p id="pageMessage">Loading preview metadata...</p>
+        </section>
+        <aside class="card stats">
+          <div id="statusPill" class="pill"><span class="dot"></span><span>Preparing preview...</span></div>
+          <div class="stats-grid">
+            <div class="stat">
+              <span>Job ID</span>
+              <div id="jobIdValue">-</div>
+            </div>
+            <div class="stat">
+              <span>Model URL</span>
+              <div id="modelUrlValue" class="muted">-</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="layout">
+        <section class="card viewer-card">
+          <div class="viewer-toolbar">
+            <h2>Viewport</h2>
+            <div class="button-row">
+              <button id="resetViewButton" type="button" class="secondary">Reset View</button>
+              <a id="downloadButton" class="button primary" href="#" target="_blank" rel="noreferrer">Download PLY</a>
+              <a class="button secondary" href="/">Back to Console</a>
+            </div>
+          </div>
+          <div class="viewport">
+            <canvas id="viewerCanvas"></canvas>
+            <div id="overlay" class="overlay">
+              <div class="overlay-card">
+                <strong id="overlayTitle">Preparing preview</strong>
+                <div id="overlayMessage">The browser viewer is starting.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card detail-card">
+          <h2>Scene Notes</h2>
+          <div class="detail-grid">
+            <div class="detail">
+              <span>Navigation</span>
+              <div>Drag to orbit, scroll to zoom, right-drag to pan.</div>
+            </div>
+            <div class="detail">
+              <span>Preview Mode</span>
+              <div>PLY vertex preview for quick inspection of shape, pose, and scale.</div>
+            </div>
+            <div class="detail">
+              <span>Rendering</span>
+              <div>Browser-side `three.js` point rendering, not the full Gaussian splat renderer.</div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script id="previewBootstrap" type="application/json">__SAM3D_PREVIEW_BOOTSTRAP__</script>
+    <script type="module">
+      import * as THREE from "/static/vendor/three/three.module.js";
+      import { OrbitControls } from "/static/vendor/three/addons/controls/OrbitControls.js";
+      import { PLYLoader } from "/static/vendor/three/addons/loaders/PLYLoader.js";
+
+      const bootstrap = JSON.parse(document.getElementById("previewBootstrap").textContent);
+
+      const pageTitle = document.getElementById("pageTitle");
+      const pageMessage = document.getElementById("pageMessage");
+      const statusPill = document.getElementById("statusPill");
+      const jobIdValue = document.getElementById("jobIdValue");
+      const modelUrlValue = document.getElementById("modelUrlValue");
+      const overlay = document.getElementById("overlay");
+      const overlayTitle = document.getElementById("overlayTitle");
+      const overlayMessage = document.getElementById("overlayMessage");
+      const canvas = document.getElementById("viewerCanvas");
+      const resetViewButton = document.getElementById("resetViewButton");
+      const downloadButton = document.getElementById("downloadButton");
+
+      jobIdValue.textContent = bootstrap.job_id || "-";
+      modelUrlValue.textContent = bootstrap.model_url || "-";
+      pageTitle.textContent = bootstrap.title || "PLY preview";
+      pageMessage.textContent = bootstrap.message || "";
+      downloadButton.href = bootstrap.download_url || "#";
+      downloadButton.style.pointerEvents = bootstrap.download_url ? "auto" : "none";
+      downloadButton.style.opacity = bootstrap.download_url ? "1" : "0.45";
+
+      function setStatus(ok, label) {
+        statusPill.innerHTML = `<span class="dot ${ok ? "ok" : "err"}"></span><span>${label}</span>`;
+      }
+
+      function showOverlay(title, message, visible = true) {
+        overlayTitle.textContent = title;
+        overlayMessage.textContent = message;
+        overlay.classList.toggle("hidden", !visible);
+      }
+
+      if (!bootstrap.ready || !bootstrap.model_url) {
+        setStatus(false, "Preview unavailable");
+        showOverlay(bootstrap.title || "Preview unavailable", bootstrap.message || "No model file is available yet.", true);
+      } else {
+        setStatus(true, "Preview ready");
+        showOverlay("Loading model", "Fetching the generated PLY and preparing the viewer.", true);
+        initViewer(bootstrap.model_url).catch((error) => {
+          console.error(error);
+          setStatus(false, "Preview failed");
+          showOverlay("Failed to load model", error.message || String(error), true);
+        });
+      }
+
+      async function initViewer(modelUrl) {
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          alpha: true,
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf5f1e8);
+
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.target.set(0, 0, 0);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 1.15);
+        scene.add(ambient);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        keyLight.position.set(4, 8, 6);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0xdfe8ff, 0.35);
+        fillLight.position.set(-6, 3, -4);
+        scene.add(fillLight);
+
+        const loader = new PLYLoader();
+        const geometry = await loader.loadAsync(modelUrl);
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+
+        if (!geometry.boundingSphere) {
+          throw new Error("The PLY file did not produce a valid bounding sphere.");
+        }
+
+        const center = geometry.boundingSphere.center.clone();
+        geometry.translate(-center.x, -center.y, -center.z);
+        geometry.computeBoundingSphere();
+        geometry.computeBoundingBox();
+
+        const radius = Math.max(geometry.boundingSphere.radius, 0.001);
+        const pointSize = Math.min(Math.max(radius / 140, 0.003), 0.045);
+        const hasColors = Boolean(geometry.getAttribute("color"));
+        const material = new THREE.PointsMaterial({
+          size: pointSize,
+          sizeAttenuation: true,
+          vertexColors: hasColors,
+          color: hasColors ? 0xffffff : 0xd8c2a2,
+        });
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+
+        const gridSize = Math.max(radius * 4, 1);
+        const grid = new THREE.GridHelper(gridSize, 12, 0xc7d1cb, 0xdfe5e1);
+        const floorY = geometry.boundingBox ? geometry.boundingBox.min.y - Math.max(radius * 0.08, 0.002) : 0;
+        grid.position.y = floorY;
+        scene.add(grid);
+
+        const resetView = () => {
+          camera.near = Math.max(radius / 1000, 0.001);
+          camera.far = Math.max(radius * 40, 20);
+          camera.position.set(radius * 1.8, radius * 0.9, radius * 1.9);
+          camera.updateProjectionMatrix();
+          controls.target.set(0, 0, 0);
+          controls.update();
+        };
+
+        resetViewButton.addEventListener("click", resetView);
+        resetView();
+
+        const resize = () => {
+          const rect = canvas.getBoundingClientRect();
+          const width = Math.max(rect.width, 1);
+          const height = Math.max(rect.height, 1);
+          renderer.setSize(width, height, false);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        };
+
+        resize();
+        window.addEventListener("resize", resize);
+
+        const animate = () => {
+          controls.update();
+          renderer.render(scene, camera);
+          window.requestAnimationFrame(animate);
+        };
+
+        showOverlay("Preview ready", "The generated object is now interactive.", false);
+        animate();
+      }
+    </script>
+  </body>
+</html>

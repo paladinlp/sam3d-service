@@ -66,6 +66,7 @@ You can override it with:
 - `POST /segment/click`
 - `POST /jobs`
 - `GET /jobs/{job_id}`
+- `GET /jobs/{job_id}/preview`
 - `GET /jobs/{job_id}/artifacts/{name}`
 
 `POST /jobs` expects `multipart/form-data` with:
@@ -108,4 +109,8 @@ The page lets you:
 - optionally upload a manual mask instead
 - submit a job
 - poll its status
+- open a separate browser preview for the generated `PLY`
 - download the generated `PLY`
+
+The `PLY` preview page ships its `three.js` assets inside `sam3d_service/web/static/`,
+so it does not depend on an external CDN.

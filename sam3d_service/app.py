@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 import io
+import json
 from pathlib import Path
 from threading import Lock
 import uuid
@@ -10,6 +11,7 @@ import uuid
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
 from sam3d_service.config import Settings
@@ -52,6 +54,7 @@ def create_app() -> FastAPI:
             await worker.stop()
 
     app = FastAPI(title="SAM 3D Objects Service", lifespan=lifespan)
+    app.mount("/static", StaticFiles(directory=web_root / "static"), name="static")
 
     @app.get("/", response_class=HTMLResponse)
     async def index() -> HTMLResponse:
@@ -146,6 +149,7 @@ def create_app() -> FastAPI:
                 scale=result_payload.get("scale", []),
                 artifacts=artifacts,
                 timings=JobTimings(**result_payload.get("timings", {})),
+                preview_url=_preview_url(request, job_id, result_payload),
             )
 
         return JobStatusResponse(
@@ -156,6 +160,93 @@ def create_app() -> FastAPI:
             started_at=payload.get("started_at"),
             finished_at=payload.get("finished_at"),
             result=result,
+        )
+
+    @app.get("/jobs/{job_id}/preview", response_class=HTMLResponse, name="job_preview")
+    async def preview_job(request: Request, job_id: str) -> HTMLResponse:
+        store: JobStore = request.app.state.store
+        try:
+            payload = store.read_job(job_id)
+        except JobNotFoundError as exc:
+            return _render_preview_page(
+                web_root,
+                {
+                    "job_id": job_id,
+                    "ready": False,
+                    "title": "Job not found",
+                    "message": str(exc),
+                    "status": "not_found",
+                    "model_url": None,
+                    "download_url": None,
+                },
+                status_code=404,
+            )
+
+        result_payload = payload.get("result")
+        if payload["status"] != "succeeded" or result_payload is None:
+            message = (
+                f"Job status is '{payload['status']}'. Preview is available only after a successful run."
+            )
+            return _render_preview_page(
+                web_root,
+                {
+                    "job_id": job_id,
+                    "ready": False,
+                    "title": "Preview not ready",
+                    "message": message,
+                    "status": payload["status"],
+                    "model_url": None,
+                    "download_url": None,
+                },
+                status_code=409,
+            )
+
+        artifact_payload = result_payload.get("artifacts", {})
+        result_ply_name = artifact_payload.get("result_ply")
+        if not result_ply_name:
+            return _render_preview_page(
+                web_root,
+                {
+                    "job_id": job_id,
+                    "ready": False,
+                    "title": "PLY artifact missing",
+                    "message": "The job completed but did not record a result.ply artifact.",
+                    "status": "missing_ply",
+                    "model_url": None,
+                    "download_url": None,
+                },
+                status_code=404,
+            )
+
+        try:
+            store.artifact_path(job_id, result_ply_name)
+        except JobNotFoundError as exc:
+            return _render_preview_page(
+                web_root,
+                {
+                    "job_id": job_id,
+                    "ready": False,
+                    "title": "PLY artifact missing",
+                    "message": str(exc),
+                    "status": "missing_ply",
+                    "model_url": None,
+                    "download_url": None,
+                },
+                status_code=404,
+            )
+
+        model_url = str(request.url_for("download_artifact", job_id=job_id, name=result_ply_name))
+        return _render_preview_page(
+            web_root,
+            {
+                "job_id": job_id,
+                "ready": True,
+                "title": "PLY preview",
+                "message": "Drag to orbit, scroll to zoom, and use Reset View to recenter the object.",
+                "status": payload["status"],
+                "model_url": model_url,
+                "download_url": model_url,
+            },
         )
 
     @app.get("/jobs/{job_id}/artifacts/{name}", name="download_artifact")
@@ -211,6 +302,20 @@ def _artifact_links(request: Request, job_id: str, artifact_payload: dict) -> Ar
         result_ply=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["result_ply"])),
         result_json=str(request.url_for("download_artifact", job_id=job_id, name=artifact_payload["result_json"])),
     )
+
+
+def _preview_url(request: Request, job_id: str, result_payload: dict) -> str | None:
+    artifact_payload = result_payload.get("artifacts", {})
+    if not artifact_payload.get("result_ply"):
+        return None
+    return str(request.url_for("job_preview", job_id=job_id))
+
+
+def _render_preview_page(web_root: Path, payload: dict, status_code: int = 200) -> HTMLResponse:
+    template = (web_root / "preview.html").read_text(encoding="utf-8")
+    bootstrap = json.dumps(payload, ensure_ascii=False)
+    html = template.replace("__SAM3D_PREVIEW_BOOTSTRAP__", bootstrap)
+    return HTMLResponse(html, status_code=status_code)
 
 
 app = create_app()

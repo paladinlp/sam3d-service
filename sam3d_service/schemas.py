@@ -23,6 +23,7 @@ class JobResult(BaseModel):
     scale: List[float]
     artifacts: ArtifactLinks
     timings: JobTimings
+    preview_url: Optional[str] = None
 
 
 class JobCreateResponse(BaseModel):

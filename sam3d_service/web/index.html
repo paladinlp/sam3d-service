@@ -303,11 +303,22 @@
       }
 
       .result-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         color: var(--accent-strong);
         text-decoration: none;
-        padding-bottom: 2px;
+        padding: 8px 0;
         border-bottom: 1px solid rgba(10, 93, 75, 0.25);
         width: fit-content;
+      }
+
+      .result-links a.preview-link {
+        padding: 11px 16px;
+        border: none;
+        border-radius: 999px;
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       }
 
       @media (max-width: 860px) {
@@ -702,13 +713,17 @@
         timingValue.textContent = `inference=${timings.inference_seconds ?? "-"}s total=${timings.total_seconds ?? "-"}s`;
 
         const links = [
-          ["Download PLY", result.artifacts.result_ply],
-          ["Download JSON", result.artifacts.result_json],
-          ["Input Image", result.artifacts.input_image],
-          ["Input Mask", result.artifacts.input_mask],
-        ];
+          result.preview_url ? ["Preview 3D", result.preview_url, "preview-link"] : null,
+          ["Download PLY", result.artifacts.result_ply, ""],
+          ["Download JSON", result.artifacts.result_json, ""],
+          ["Input Image", result.artifacts.input_image, ""],
+          ["Input Mask", result.artifacts.input_mask, ""],
+        ].filter(Boolean);
         resultLinks.innerHTML = links
-          .map(([label, href]) => `<a href="${href}" target="_blank" rel="noreferrer">${label}</a>`)
+          .map(([label, href, className]) => {
+            const classes = className ? ` class="${className}"` : "";
+            return `<a${classes} href="${href}" target="_blank" rel="noreferrer">${label}</a>`;
+          })
           .join("");
       }
 
