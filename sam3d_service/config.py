@@ -17,6 +17,8 @@ class Settings:
     render_gif_fps: int
     preview_max_points: int
     preview_opacity_threshold: float
+    supersplat_enabled: bool
+    supersplat_command: str
     segment_device: str
     segment_model_type: str
     segment_checkpoint_env: str | None
@@ -69,6 +71,16 @@ class Settings:
         render_gif_fps = int(os.environ.get("SAM3D_RENDER_GIF_FPS", "30"))
         preview_max_points = int(os.environ.get("SAM3D_PREVIEW_MAX_POINTS", "25000"))
         preview_opacity_threshold = float(os.environ.get("SAM3D_PREVIEW_OPACITY_THRESHOLD", "0.08"))
+        supersplat_enabled = os.environ.get("SAM3D_SUPERSPLAT_ENABLE", "1").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        supersplat_command = os.environ.get(
+            "SAM3D_SUPERSPLAT_COMMAND",
+            "npx -y @playcanvas/splat-transform@1.8.0",
+        )
         segment_device = os.environ.get("SAM3D_SEGMENT_DEVICE", device)
         segment_model_type = os.environ.get("SAM3D_SEGMENT_MODEL_TYPE", "vit_h")
         segment_checkpoint_env = os.environ.get("SAM3D_SEGMENT_CHECKPOINT")
@@ -85,6 +97,8 @@ class Settings:
             render_gif_fps=render_gif_fps,
             preview_max_points=preview_max_points,
             preview_opacity_threshold=preview_opacity_threshold,
+            supersplat_enabled=supersplat_enabled,
+            supersplat_command=supersplat_command,
             segment_device=segment_device,
             segment_model_type=segment_model_type,
             segment_checkpoint_env=segment_checkpoint_env,

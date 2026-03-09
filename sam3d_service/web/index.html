@@ -1206,6 +1206,13 @@
       }
 
       function flattenArtifacts(value, prefix = "") {
+        const hiddenArtifactKeys = new Set([
+          "preview_ply",
+          "supersplat_html",
+          "supersplat_sog",
+          "supersplat_js",
+          "supersplat_css",
+        ]);
         if (value === null || value === undefined) {
           return [];
         }
@@ -1216,7 +1223,12 @@
           return value.flatMap((item, index) => flattenArtifacts(item, `${prefix}[${index}]`));
         }
         if (typeof value === "object") {
-          return Object.entries(value).flatMap(([key, item]) => flattenArtifacts(item, prefix ? `${prefix}.${key}` : key));
+          return Object.entries(value).flatMap(([key, item]) => {
+            if (hiddenArtifactKeys.has(key)) {
+              return [];
+            }
+            return flattenArtifacts(item, prefix ? `${prefix}.${key}` : key);
+          });
         }
         return [];
       }

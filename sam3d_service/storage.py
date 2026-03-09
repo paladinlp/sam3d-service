@@ -19,6 +19,10 @@ RESULT_PLY_NAME = "result.ply"
 PREVIEW_PLY_NAME = "preview.ply"
 PREVIEW_GIF_NAME = "preview.gif"
 PREVIEW_VIDEO_NAME = "preview.mp4"
+SUPERSPLAT_HTML_NAME = "supersplat.html"
+SUPERSPLAT_SOG_NAME = "supersplat.sog"
+SUPERSPLAT_JS_NAME = "index.js"
+SUPERSPLAT_CSS_NAME = "index.css"
 SCENE_RESULT_PLY_NAME = "scene_result.ply"
 ALIGNMENT_RESULT_PLY_NAME = "aligned_mesh.ply"
 ERROR_NAME = "error.txt"
@@ -154,6 +158,10 @@ class JobStore:
             "preview_ply": job_dir / PREVIEW_PLY_NAME,
             "preview_gif": job_dir / PREVIEW_GIF_NAME,
             "preview_video": job_dir / PREVIEW_VIDEO_NAME,
+            "supersplat_html": job_dir / SUPERSPLAT_HTML_NAME,
+            "supersplat_sog": job_dir / SUPERSPLAT_SOG_NAME,
+            "supersplat_js": job_dir / SUPERSPLAT_JS_NAME,
+            "supersplat_css": job_dir / SUPERSPLAT_CSS_NAME,
             "result_json": job_dir / RESULT_JSON_NAME,
             "error": job_dir / ERROR_NAME,
         }

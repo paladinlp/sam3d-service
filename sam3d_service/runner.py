@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 from pathlib import Path
 import os
+import logging
 import sys
 from threading import Lock
 import time
@@ -13,6 +14,7 @@ from PIL import Image
 
 from sam3d_service.config import Settings
 from sam3d_service.preview_ply import build_preview_ply
+from sam3d_service.supersplat_viewer import build_supersplat_viewer
 from sam3d_service.storage import (
     ALIGNMENT_RESULT_PLY_NAME,
     FOCAL_LENGTH_JSON_NAME,
@@ -28,10 +30,15 @@ from sam3d_service.storage import (
     RESULT_JSON_NAME,
     RESULT_PLY_NAME,
     SCENE_RESULT_PLY_NAME,
+    SUPERSPLAT_CSS_NAME,
+    SUPERSPLAT_HTML_NAME,
+    SUPERSPLAT_JS_NAME,
+    SUPERSPLAT_SOG_NAME,
 )
 
 
 ProgressCallback = Callable[..., None]
+LOGGER = logging.getLogger(__name__)
 
 
 class InferenceRunner:
@@ -152,6 +159,16 @@ class InferenceRunner:
         )
         self._emit_progress(
             progress_callback,
+            progress=90,
+            stage="building_viewer",
+            message="Packaging PlayCanvas Gaussian viewer.",
+        )
+        viewer_artifacts = self._maybe_create_supersplat_viewer(
+            source_path=job_dir / RESULT_PLY_NAME,
+            job_dir=job_dir,
+        )
+        self._emit_progress(
+            progress_callback,
             progress=96,
             stage="finalizing",
             message="Finalizing result payload.",
@@ -168,6 +185,7 @@ class InferenceRunner:
                 "preview_ply": preview_artifact,
                 "preview_gif": media_artifacts["gif_artifact"],
                 "preview_video": media_artifacts["video_artifact"],
+                **viewer_artifacts,
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
@@ -261,6 +279,16 @@ class InferenceRunner:
         )
         self._emit_progress(
             progress_callback,
+            progress=92,
+            stage="building_viewer",
+            message="Packaging PlayCanvas Gaussian viewer.",
+        )
+        viewer_artifacts = self._maybe_create_supersplat_viewer(
+            source_path=job_dir / SCENE_RESULT_PLY_NAME,
+            job_dir=job_dir,
+        )
+        self._emit_progress(
+            progress_callback,
             progress=96,
             stage="finalizing",
             message="Finalizing scene payload.",
@@ -277,6 +305,7 @@ class InferenceRunner:
                 "preview_ply": preview_artifact,
                 "preview_gif": media_artifacts["gif_artifact"],
                 "preview_video": media_artifacts["video_artifact"],
+                **viewer_artifacts,
                 "result_json": RESULT_JSON_NAME,
             },
             "preview_artifact": preview_artifact,
@@ -402,6 +431,47 @@ class InferenceRunner:
             return preview_path.name
         except Exception:
             return source_path.name
+
+    def _maybe_create_supersplat_viewer(
+        self,
+        *,
+        source_path: Path,
+        job_dir: Path,
+    ) -> dict[str, str | None]:
+        if not self.settings.supersplat_enabled:
+            return {
+                "supersplat_html": None,
+                "supersplat_sog": None,
+                "supersplat_js": None,
+                "supersplat_css": None,
+            }
+        try:
+            artifacts = build_supersplat_viewer(
+                source_path=source_path,
+                output_dir=job_dir,
+                command=self.settings.supersplat_command,
+            )
+            return {
+                "supersplat_html": artifacts.html_name,
+                "supersplat_sog": artifacts.sog_name,
+                "supersplat_js": artifacts.js_name,
+                "supersplat_css": artifacts.css_name,
+            }
+        except Exception as exc:
+            LOGGER.warning("SuperSplat viewer generation failed for %s: %s", source_path, exc)
+            for artifact_name in (
+                SUPERSPLAT_HTML_NAME,
+                SUPERSPLAT_SOG_NAME,
+                SUPERSPLAT_JS_NAME,
+                SUPERSPLAT_CSS_NAME,
+            ):
+                (job_dir / artifact_name).unlink(missing_ok=True)
+            return {
+                "supersplat_html": None,
+                "supersplat_sog": None,
+                "supersplat_js": None,
+                "supersplat_css": None,
+            }
 
     def _maybe_render_media(
         self,

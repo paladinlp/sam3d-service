@@ -20,7 +20,9 @@ For a step-by-step remote deployment checklist, see `sam3d_service/DEPLOY.md`.
    pip install -r sam3d_service/requirements.txt
    ```
 
-3. Start the service:
+3. Install Node.js and npm if you want the PlayCanvas Gaussian viewer preview.
+
+4. Start the service:
 
    ```bash
    bash sam3d_service/start_service.sh
@@ -62,6 +64,8 @@ You can override it with:
 - `SAM3D_RENDER_GIF_FPS`: GIF playback FPS (default: `30`)
 - `SAM3D_PREVIEW_MAX_POINTS`: max points kept in browser preview PLY (default: `25000`)
 - `SAM3D_PREVIEW_OPACITY_THRESHOLD`: minimum opacity kept when downsampling gaussian PLYs (default: `0.08`)
+- `SAM3D_SUPERSPLAT_ENABLE`: build a PlayCanvas SuperSplat viewer for gaussian jobs (default: `1`)
+- `SAM3D_SUPERSPLAT_COMMAND`: CLI used to generate the viewer (default: `npx -y @playcanvas/splat-transform@1.8.0`)
 - `SAM3D_HOST`: service bind address (default: `0.0.0.0`)
 - `SAM3D_PORT`: service port (default: `8000`)
 
@@ -132,13 +136,19 @@ The page lets you:
 - refine scene masks with positive and negative point prompts, then confirm or remove queued objects
 - inspect the notebook-style server-rendered GIF and MP4 preview for single and scene jobs
 - monitor per-job progress and stage updates while gaussian inference is running
-- open a separate browser preview for the generated `PLY`
+- open a separate PlayCanvas Gaussian viewer for single and scene jobs
+- fall back to the old browser `PLY` preview when the PlayCanvas viewer is unavailable
 - download all generated artifacts
 
 The `PLY` preview page ships its `three.js` assets inside `sam3d_service/web/static/`,
 so it does not depend on an external CDN.
 
-The browser preview now loads a lightweight server-generated `preview.ply` when available.
-The download link still points to the original full-resolution result.
+Single-object and multi-object jobs now try to package a PlayCanvas SuperSplat
+viewer from the original gaussian `PLY`. This requires `node`, `npm`, and a
+working `npx` environment on the server.
+
+If the PlayCanvas viewer build fails, the preview route falls back to the older
+lightweight `preview.ply` browser view. The download link still points to the
+original full-resolution result.
 
 The alignment tab adds a `trimesh` dependency on top of the service layer.

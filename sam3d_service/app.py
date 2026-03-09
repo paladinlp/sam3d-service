@@ -11,7 +11,7 @@ import uuid
 
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
@@ -304,7 +304,7 @@ def create_app() -> FastAPI:
         )
 
     @app.get("/jobs/{job_id}/preview", response_class=HTMLResponse, name="job_preview")
-    async def preview_job(request: Request, job_id: str) -> HTMLResponse:
+    async def preview_job(request: Request, job_id: str):
         store: JobStore = request.app.state.store
         try:
             payload = store.read_job(job_id)
@@ -341,6 +341,18 @@ def create_app() -> FastAPI:
                 },
                 status_code=409,
             )
+
+        supersplat_name = _supersplat_artifact_name(result_payload)
+        if supersplat_name:
+            try:
+                store.artifact_path(job_id, supersplat_name)
+            except JobNotFoundError:
+                supersplat_name = None
+            else:
+                return RedirectResponse(
+                    url=str(request.url_for("download_artifact", job_id=job_id, name=supersplat_name)),
+                    status_code=307,
+                )
 
         preview_name = _preview_artifact_name(result_payload)
         if not preview_name:
@@ -463,9 +475,16 @@ def _artifact_links(request: Request, job_id: str, artifact_payload: dict[str, A
 
 
 def _preview_url(request: Request, job_id: str, result_payload: dict) -> str | None:
-    if _preview_artifact_name(result_payload) is None:
+    if _supersplat_artifact_name(result_payload) is None and _preview_artifact_name(result_payload) is None:
         return None
     return str(request.url_for("job_preview", job_id=job_id))
+
+
+def _supersplat_artifact_name(result_payload: dict[str, Any]) -> str | None:
+    artifact_payload = result_payload.get("artifacts", {})
+    if isinstance(artifact_payload, dict):
+        return artifact_payload.get("supersplat_html")
+    return None
 
 
 def _preview_artifact_name(result_payload: dict[str, Any]) -> str | None:
