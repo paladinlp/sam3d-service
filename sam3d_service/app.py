@@ -19,6 +19,7 @@ from PIL import Image, UnidentifiedImageError
 from sam3d_service.config import Settings
 from sam3d_service.runner import InferenceRunner
 from sam3d_service.segmenter import ClickSegmenter
+from sam3d_service.supersplat_viewer import ensure_supersplat_controls
 from sam3d_service.schemas import (
     ClickSegmentationResponse,
     HealthResponse,
@@ -433,6 +434,9 @@ def create_app() -> FastAPI:
             artifact_path = store.artifact_path(job_id, name)
         except JobNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        if name == _supersplat_artifact_name(result_payload):
+            ensure_supersplat_controls(artifact_path)
 
         media_type, _ = mimetypes.guess_type(name)
         return FileResponse(path=artifact_path, media_type=media_type)

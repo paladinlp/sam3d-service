@@ -69,7 +69,7 @@ def build_supersplat_viewer(
             + ", ".join(missing)
         )
 
-    _inject_auto_rotate_controls(html_path)
+    ensure_supersplat_controls(html_path)
 
     return SuperSplatArtifacts(
         html_name=html_path.name,
@@ -79,7 +79,7 @@ def build_supersplat_viewer(
     )
 
 
-def _inject_auto_rotate_controls(html_path: Path) -> None:
+def ensure_supersplat_controls(html_path: Path) -> None:
     html = html_path.read_text(encoding="utf-8")
     if "sam3d-auto-rotate-button" in html:
         return
