@@ -332,6 +332,7 @@
             <h2>Viewport</h2>
             <div class="button-row">
               <button id="resetViewButton" type="button" class="secondary">Reset View</button>
+              <button id="autoRotateButton" type="button" class="secondary">Auto Rotate</button>
               <a id="downloadButton" class="button primary" href="#" target="_blank" rel="noreferrer">Download PLY</a>
               <a class="button secondary" href="/">Back to Console</a>
             </div>
@@ -385,6 +386,7 @@
       const overlayMessage = document.getElementById("overlayMessage");
       const canvas = document.getElementById("viewerCanvas");
       const resetViewButton = document.getElementById("resetViewButton");
+      const autoRotateButton = document.getElementById("autoRotateButton");
       const downloadButton = document.getElementById("downloadButton");
 
       jobIdValue.textContent = bootstrap.job_id || "-";
@@ -434,6 +436,8 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.08;
+        controls.autoRotate = false;
+        controls.autoRotateSpeed = 0.9;
         controls.target.set(0, 0, 0);
 
         const ambient = new THREE.AmbientLight(0xffffff, 1.15);
@@ -489,6 +493,10 @@
         };
 
         resetViewButton.addEventListener("click", resetView);
+        autoRotateButton.addEventListener("click", () => {
+          controls.autoRotate = !controls.autoRotate;
+          autoRotateButton.textContent = controls.autoRotate ? "Stop Rotate" : "Auto Rotate";
+        });
         resetView();
 
         const resize = () => {
