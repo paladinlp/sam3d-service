@@ -81,7 +81,12 @@ def build_supersplat_viewer(
 
 def ensure_supersplat_controls(html_path: Path) -> None:
     html = html_path.read_text(encoding="utf-8")
+    updated = False
+    html, camera_updated = _apply_default_front_camera(html)
+    updated = updated or camera_updated
     if "sam3d-auto-rotate-button" in html:
+        if updated:
+            html_path.write_text(html, encoding="utf-8")
         return
 
     snippet = """
@@ -251,4 +256,17 @@ def ensure_supersplat_controls(html_path: Path) -> None:
         </script>
     """
     html = html.replace("</body>", f"{snippet}\n    </body>")
-    html_path.write_text(html, encoding="utf-8")
+    updated = True
+    if updated:
+        html_path.write_text(html, encoding="utf-8")
+
+
+def _apply_default_front_camera(html: str) -> tuple[str, bool]:
+    original = 'settings: {"camera":{"fov":50,"position":[2,2,-2],"target":[0,0,0],"startAnim":"none"}'
+    updated = 'settings: {"camera":{"fov":50,"position":[0,0,-2.6],"target":[0,0,0],"startAnim":"none"}'
+    if original in html:
+        return html.replace(original, updated, 1), True
+    legacy = 'settings: {"camera":{"fov":50,"position":[0,0,-2],"target":[0,0,0],"startAnim":"none"}'
+    if legacy in html:
+        return html.replace(legacy, updated, 1), True
+    return html, False
