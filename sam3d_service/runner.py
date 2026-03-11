@@ -228,11 +228,19 @@ class InferenceRunner:
         inference_seconds = None
         render_seconds = None
         media_artifacts = {"gif_artifact": None, "video_artifact": None, "seconds": None}
+        shared_pointmap = None
         lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
         with lock:
             inference_start = time.perf_counter()
+            self._emit_progress(
+                progress_callback,
+                progress=10,
+                stage="scene_pointmap",
+                message="Computing shared scene pointmap once for all selected objects.",
+            )
+            shared_pointmap = self._compute_shared_pointmap(image)
             for index, mask_path in enumerate(mask_paths):
-                progress = 12 + (index / max(len(mask_paths), 1)) * 44
+                progress = 16 + (index / max(len(mask_paths), 1)) * 40
                 self._emit_progress(
                     progress_callback,
                     progress=progress,
@@ -240,7 +248,12 @@ class InferenceRunner:
                     message=f"Reconstructing object {index + 1}/{len(mask_paths)}.",
                 )
                 mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) > 0
-                output = self._inference(image, mask, seed=seed)
+                output = self._inference(
+                    image,
+                    mask,
+                    seed=seed,
+                    pointmap=shared_pointmap,
+                )
                 object_name = f"object_{index:03d}.ply"
                 output["gs"].save_ply(str(job_dir / object_name))
                 object_ply_files.append(object_name)
@@ -312,6 +325,7 @@ class InferenceRunner:
                 **viewer_artifacts,
                 "result_json": RESULT_JSON_NAME,
             },
+            "shared_pointmap_reused": shared_pointmap is not None,
             "preview_artifact": preview_artifact,
             "timings": {
                 "inference_seconds": round(inference_seconds, 3),
@@ -540,6 +554,29 @@ class InferenceRunner:
                     writer.append_data(np.asarray(frame, dtype=np.uint8))
             return output_path
         except Exception:
+            return None
+
+    def _compute_shared_pointmap(self, image: np.ndarray) -> Any | None:
+        pipeline = getattr(self._inference, "_pipeline", None)
+        merge_mask_to_rgba = getattr(self._inference, "merge_mask_to_rgba", None)
+        if pipeline is None or merge_mask_to_rgba is None or not hasattr(pipeline, "compute_pointmap"):
+            return None
+        try:
+            rgba_image = merge_mask_to_rgba(
+                image,
+                np.ones(image.shape[:2], dtype=np.uint8),
+            )
+            pointmap_dict = pipeline.compute_pointmap(rgba_image)
+            pointmap = pointmap_dict.get("pointmap")
+            if pointmap is None:
+                return None
+            if hasattr(pointmap, "detach"):
+                return pointmap.detach().permute(1, 2, 0).cpu()
+            if hasattr(pointmap, "permute"):
+                return pointmap.permute(1, 2, 0)
+            return pointmap
+        except Exception as exc:
+            LOGGER.warning("Shared scene pointmap computation failed, falling back to per-object pointmaps: %s", exc)
             return None
 
     @staticmethod

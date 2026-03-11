@@ -146,6 +146,7 @@ The page lets you:
 - run the 3DB mesh alignment flow from `demo_3db_mesh_alignment.ipynb`
 - click a foreground object to generate a mask when Segment Anything is ready
 - generate multiple automatic scene candidates, select the objects to keep, and use positive/negative points only for missing objects or mask refinement
+- reuse one shared scene pointmap during multi-object reconstruction to reduce relative pose drift between selected objects
 - inspect the notebook-style server-rendered GIF and MP4 preview for single and scene jobs
 - monitor per-job progress and stage updates while gaussian inference is running
 - open a separate PlayCanvas Gaussian viewer for single and scene jobs
