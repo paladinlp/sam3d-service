@@ -155,6 +155,7 @@ class InferenceRunner:
         )
         output["gs"].save_ply(str(job_dir / RESULT_PLY_NAME))
         scene_gs = self._make_scene(output)
+        self._center_gaussian_in_place(scene_gs)
         scene_gs.save_ply(str(job_dir / POSED_RESULT_PLY_NAME))
         preview_artifact = self._maybe_create_preview(
             job_dir / POSED_RESULT_PLY_NAME,
@@ -540,6 +541,19 @@ class InferenceRunner:
             return output_path
         except Exception:
             return None
+
+    @staticmethod
+    def _center_gaussian_in_place(scene_gs: Any) -> None:
+        xyz = scene_gs.get_xyz
+        opacity = scene_gs.get_opacity.squeeze()
+        active_mask = opacity > 0.9
+        if hasattr(active_mask, "any") and not bool(active_mask.any()):
+            active_mask = opacity > 0
+        if hasattr(active_mask, "any") and not bool(active_mask.any()):
+            active_mask = None
+        active_xyz = xyz[active_mask] if active_mask is not None else xyz
+        center = (active_xyz.max(dim=0)[0] + active_xyz.min(dim=0)[0]) / 2
+        scene_gs.from_xyz(xyz - center)
 
     @staticmethod
     def _emit_progress(
