@@ -15,7 +15,9 @@ class ClickSegmenter:
     def __init__(self, settings: Settings, gpu_lock: Lock | None = None):
         self.settings = settings
         self.gpu_lock = gpu_lock
+        self._model = None
         self._predictor = None
+        self._mask_generator = None
         self._load_lock = Lock()
 
     @property
@@ -27,17 +29,21 @@ class ClickSegmenter:
         return self._predictor is not None
 
     def load_model(self) -> None:
-        if self._predictor is not None:
+        if self._predictor is not None and self._mask_generator is not None:
             return
         with self._load_lock:
-            if self._predictor is not None:
+            if self._predictor is not None and self._mask_generator is not None:
                 return
             if not self.checkpoint_ready:
                 raise FileNotFoundError(
                     f"Missing Segment Anything checkpoint: {self.settings.segment_checkpoint}"
                 )
             try:
-                from segment_anything import SamPredictor, sam_model_registry
+                from segment_anything import (
+                    SamAutomaticMaskGenerator,
+                    SamPredictor,
+                    sam_model_registry,
+                )
             except ImportError as exc:
                 raise RuntimeError(
                     "segment-anything is not installed. Install sam3d_service/requirements.txt."
@@ -52,7 +58,18 @@ class ClickSegmenter:
                 checkpoint=str(self.settings.segment_checkpoint)
             )
             model.to(device=self.settings.segment_device)
+            self._model = model
             self._predictor = SamPredictor(model)
+            # The scene flow needs instance proposals instead of just one best mask.
+            self._mask_generator = SamAutomaticMaskGenerator(
+                model=model,
+                points_per_side=self.settings.segment_auto_points_per_side,
+                pred_iou_thresh=0.86,
+                stability_score_thresh=0.92,
+                crop_n_layers=1,
+                crop_n_points_downscale_factor=2,
+                min_mask_region_area=0,
+            )
 
     def segment_click_from_bytes(
         self,
@@ -114,6 +131,124 @@ class ClickSegmenter:
             "height": int(height),
             "mask_png_base64": base64.b64encode(mask_png).decode("ascii"),
         }
+
+    def generate_mask_candidates_from_bytes(self, image_bytes: bytes) -> dict:
+        self.load_model()
+        image = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"), dtype=np.uint8)
+        height, width = image.shape[:2]
+        image_area = float(height * width)
+
+        lock = self.gpu_lock if self.gpu_lock is not None else nullcontext()
+        with lock:
+            raw_masks = self._mask_generator.generate(image)
+
+        prepared: list[dict] = []
+        min_ratio = max(0.0, self.settings.segment_auto_min_area_ratio)
+        max_ratio = min(1.0, self.settings.segment_auto_max_area_ratio)
+
+        for item in raw_masks:
+            mask = np.asarray(item.get("segmentation"), dtype=bool)
+            area = int(item.get("area") or int(mask.sum()))
+            if area <= 0:
+                continue
+            coverage = area / image_area
+            if coverage < min_ratio or coverage > max_ratio:
+                continue
+            predicted_iou = float(item.get("predicted_iou") or 0.0)
+            stability_score = float(item.get("stability_score") or 0.0)
+            bbox = [int(round(value)) for value in item.get("bbox", [0, 0, width, height])]
+            rank_score = self._candidate_rank_score(coverage, predicted_iou, stability_score)
+            prepared.append(
+                {
+                    "mask": mask,
+                    "area": area,
+                    "coverage": coverage,
+                    "predicted_iou": predicted_iou,
+                    "stability_score": stability_score,
+                    "bbox": bbox,
+                    "rank_score": rank_score,
+                }
+            )
+
+        if not prepared:
+            for item in raw_masks:
+                mask = np.asarray(item.get("segmentation"), dtype=bool)
+                area = int(item.get("area") or int(mask.sum()))
+                if area <= 0:
+                    continue
+                coverage = area / image_area
+                predicted_iou = float(item.get("predicted_iou") or 0.0)
+                stability_score = float(item.get("stability_score") or 0.0)
+                bbox = [int(round(value)) for value in item.get("bbox", [0, 0, width, height])]
+                prepared.append(
+                    {
+                        "mask": mask,
+                        "area": area,
+                        "coverage": coverage,
+                        "predicted_iou": predicted_iou,
+                        "stability_score": stability_score,
+                        "bbox": bbox,
+                        "rank_score": self._candidate_rank_score(
+                            coverage, predicted_iou, stability_score
+                        ),
+                    }
+                )
+
+        prepared.sort(key=lambda item: item["rank_score"], reverse=True)
+
+        deduped: list[dict] = []
+        for item in prepared:
+            if any(
+                self._mask_iou(item["mask"], existing["mask"]) >= self.settings.segment_auto_dedup_iou
+                for existing in deduped
+            ):
+                continue
+            deduped.append(item)
+            if len(deduped) >= self.settings.segment_auto_max_candidates:
+                break
+
+        candidates = []
+        for index, item in enumerate(deduped):
+            mask_png = self._mask_to_png_bytes(item["mask"])
+            bbox_key = "-".join(str(value) for value in item["bbox"])
+            candidates.append(
+                {
+                    "candidate_id": f"candidate-{index:03d}-{bbox_key}-{item['area']}",
+                    "area": item["area"],
+                    "coverage": item["coverage"],
+                    "score": item["rank_score"],
+                    "predicted_iou": item["predicted_iou"],
+                    "stability_score": item["stability_score"],
+                    "bbox": item["bbox"],
+                    "mask_png_base64": base64.b64encode(mask_png).decode("ascii"),
+                }
+            )
+
+        return {
+            "width": int(width),
+            "height": int(height),
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+        }
+
+    @staticmethod
+    def _candidate_rank_score(
+        coverage: float, predicted_iou: float, stability_score: float
+    ) -> float:
+        coverage_bonus = min(coverage / 0.08, 1.0)
+        return (
+            predicted_iou * 0.52
+            + stability_score * 0.33
+            + coverage_bonus * 0.15
+        )
+
+    @staticmethod
+    def _mask_iou(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
+        intersection = np.logical_and(mask_a, mask_b).sum()
+        union = np.logical_or(mask_a, mask_b).sum()
+        if union == 0:
+            return 0.0
+        return float(intersection / union)
 
     @staticmethod
     def _mask_to_png_bytes(mask: np.ndarray) -> bytes:

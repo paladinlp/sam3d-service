@@ -22,6 +22,11 @@ class Settings:
     segment_device: str
     segment_model_type: str
     segment_checkpoint_env: str | None
+    segment_auto_points_per_side: int
+    segment_auto_max_candidates: int
+    segment_auto_min_area_ratio: float
+    segment_auto_max_area_ratio: float
+    segment_auto_dedup_iou: float
     host: str
     port: int
 
@@ -84,6 +89,11 @@ class Settings:
         segment_device = os.environ.get("SAM3D_SEGMENT_DEVICE", device)
         segment_model_type = os.environ.get("SAM3D_SEGMENT_MODEL_TYPE", "vit_h")
         segment_checkpoint_env = os.environ.get("SAM3D_SEGMENT_CHECKPOINT")
+        segment_auto_points_per_side = int(os.environ.get("SAM3D_SEGMENT_AUTO_POINTS_PER_SIDE", "24"))
+        segment_auto_max_candidates = int(os.environ.get("SAM3D_SEGMENT_AUTO_MAX_CANDIDATES", "18"))
+        segment_auto_min_area_ratio = float(os.environ.get("SAM3D_SEGMENT_AUTO_MIN_AREA_RATIO", "0.003"))
+        segment_auto_max_area_ratio = float(os.environ.get("SAM3D_SEGMENT_AUTO_MAX_AREA_RATIO", "0.6"))
+        segment_auto_dedup_iou = float(os.environ.get("SAM3D_SEGMENT_AUTO_DEDUP_IOU", "0.9"))
         host = os.environ.get("SAM3D_HOST", "0.0.0.0")
         port = int(os.environ.get("SAM3D_PORT", "8000"))
         return cls(
@@ -102,6 +112,11 @@ class Settings:
             segment_device=segment_device,
             segment_model_type=segment_model_type,
             segment_checkpoint_env=segment_checkpoint_env,
+            segment_auto_points_per_side=segment_auto_points_per_side,
+            segment_auto_max_candidates=segment_auto_max_candidates,
+            segment_auto_min_area_ratio=segment_auto_min_area_ratio,
+            segment_auto_max_area_ratio=segment_auto_max_area_ratio,
+            segment_auto_dedup_iou=segment_auto_dedup_iou,
             host=host,
             port=port,
         )

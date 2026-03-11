@@ -278,6 +278,20 @@
         position: relative;
       }
 
+      .mask-overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+        display: none;
+      }
+
+      .mask-overlay.visible {
+        display: block;
+      }
+
       .preview img {
         display: block;
         width: 100%;
@@ -509,6 +523,94 @@
         color: #f8f6ef;
         cursor: pointer;
         font: inherit;
+      }
+
+      .candidate-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .candidate-list {
+        display: grid;
+        gap: 10px;
+        max-height: 460px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .candidate-card {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.76);
+        cursor: pointer;
+      }
+
+      .candidate-card.active {
+        border-color: rgba(11, 124, 99, 0.42);
+        box-shadow: 0 12px 24px rgba(11, 124, 99, 0.12);
+      }
+
+      .candidate-card.selected {
+        background: rgba(225, 248, 240, 0.88);
+      }
+
+      .candidate-thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        border-radius: 12px;
+        background: rgba(24, 33, 30, 0.04);
+      }
+
+      .candidate-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .candidate-copy strong {
+        margin: 0;
+      }
+
+      .candidate-copy span {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .candidate-actions {
+        display: grid;
+        gap: 6px;
+        justify-items: end;
+      }
+
+      .candidate-actions button {
+        min-width: 84px;
+        border: none;
+        border-radius: 999px;
+        padding: 7px 11px;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .candidate-actions .candidate-toggle {
+        color: #f8f6ef;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      }
+
+      .candidate-actions .candidate-toggle.selected {
+        background: rgba(155, 61, 37, 0.12);
+        color: var(--warn);
+      }
+
+      .candidate-actions .candidate-focus {
+        color: var(--muted);
+        background: rgba(24, 33, 30, 0.08);
       }
 
       .media-viewer {
@@ -748,48 +850,66 @@
                 <input id="sceneSeedInput" type="number" value="42" step="1" />
               </div>
               <p class="note">
-                对应 `demo_multi_object.ipynb`。你可以手工上传多个 mask，或者用正负点逐步提示分割，再把当前 mask 确认加入场景对象列表。
+                对应 `demo_multi_object.ipynb`。主流程改成先生成候选实例，再从候选里点选要保留的对象；正负点只作为补漏和精修。
               </p>
               <div class="actions">
-                <button id="sceneAddMaskButton" class="action secondary" type="button">Confirm Current Mask</button>
-                <button id="sceneUndoPointButton" class="action secondary" type="button">Undo Point</button>
+                <button id="sceneGenerateCandidatesButton" class="action secondary" type="button">Generate Candidates</button>
+                <button id="sceneAddMaskButton" class="action secondary" type="button">Confirm Prompt Mask</button>
                 <button id="sceneSubmitButton" class="action primary" type="submit">Submit Scene Job</button>
-                <button id="sceneClearMasksButton" class="action secondary" type="button">Clear Scene Masks</button>
+                <button id="sceneClearMasksButton" class="action secondary" type="button">Clear Selected</button>
                 <button id="sceneResetButton" class="action secondary" type="button">Reset</button>
+              </div>
+              <div class="actions compact-actions">
+                <button id="sceneUndoPointButton" class="action secondary" type="button">Undo Point</button>
+                <button id="scenePositiveModeButton" class="action secondary mode-button" type="button">Positive Point</button>
+                <button id="sceneNegativeModeButton" class="action secondary mode-button" type="button">Negative Point</button>
+                <button id="sceneClearCandidatesButton" class="action secondary" type="button">Clear Candidates</button>
               </div>
             </form>
             <div class="stack" style="margin-top: 20px;">
-              <div class="meta-card">
-                <span>Queued Masks</span>
-                <div id="sceneMaskSummary">No masks selected.</div>
+              <div class="candidate-summary">
+                <div class="meta-card">
+                  <span>Candidate Instances</span>
+                  <div id="sceneCandidateSummary">No candidates generated.</div>
+                </div>
+                <div class="meta-card">
+                  <span>Selected Objects</span>
+                  <div id="sceneMaskSummary">No objects selected.</div>
+                </div>
               </div>
-              <div id="sceneMaskList" class="mask-list"><span class="muted">Selected objects are pinned on the image preview.</span></div>
+              <div class="meta-card">
+                <span>Selected Objects</span>
+                <div id="sceneMaskList" class="mask-list"><span class="muted">Selected objects stay pinned on the image preview.</span></div>
+              </div>
             </div>
           </section>
 
           <section class="card panel">
-            <h2 class="section-title">Scene Mask Builder</h2>
+            <h2 class="section-title">Scene Selector</h2>
             <div class="preview-grid">
               <div class="preview">
-                <strong>Image (click to segment)</strong>
+                <strong>Image</strong>
                 <div class="preview-shell">
                   <img id="sceneImagePreview" alt="Scene image preview" class="clickable" />
+                  <img id="sceneActiveMaskOverlay" class="mask-overlay" alt="" />
                   <div id="sceneMarkerLayer" class="marker-layer"></div>
                   <div id="sceneQueueOverlay" class="queue-overlay"></div>
                 </div>
               </div>
               <div class="preview">
-                <strong>Current Mask</strong>
+                <strong>Active Mask / Prompt Result</strong>
                 <div class="preview-shell">
                   <img id="sceneMaskPreview" alt="Current scene mask preview" />
                 </div>
               </div>
             </div>
-            <div class="actions compact-actions">
-              <button id="scenePositiveModeButton" class="action secondary mode-button" type="button">Positive Point</button>
-              <button id="sceneNegativeModeButton" class="action secondary mode-button" type="button">Negative Point</button>
+            <p class="note" id="sceneClickHint">先生成候选实例并点选要保留的对象。候选没有覆盖到时，再在原图上用正负点补一个 prompt mask。</p>
+            <div class="stack" style="margin-top: 12px;">
+              <div class="meta-card">
+                <span>Candidate Browser</span>
+                <div id="sceneCandidateList" class="candidate-list"><span class="muted">Generate candidates to inspect selectable objects.</span></div>
+              </div>
             </div>
-            <p class="note" id="sceneClickHint">左键会按当前模式添加提示点，右键会临时作为 negative point。确认当前 mask 后加入场景队列。</p>
           </section>
         </section>
 
@@ -941,8 +1061,11 @@
       const sceneState = {
         pollTimer: null,
         currentGeneratedMaskFile: null,
+        currentGeneratedMaskDataUrl: null,
         promptPoints: [],
         pointMode: "positive",
+        candidateMasks: [],
+        activeCandidateId: null,
         queuedMasks: [],
       };
 
@@ -987,6 +1110,7 @@
         maskInput: document.getElementById("sceneMaskInput"),
         seedInput: document.getElementById("sceneSeedInput"),
         imagePreview: document.getElementById("sceneImagePreview"),
+        activeMaskOverlay: document.getElementById("sceneActiveMaskOverlay"),
         maskPreview: document.getElementById("sceneMaskPreview"),
         markerLayer: document.getElementById("sceneMarkerLayer"),
         clickHint: document.getElementById("sceneClickHint"),
@@ -1005,13 +1129,17 @@
         objectList: document.getElementById("sceneObjectList"),
         objectCount: document.getElementById("sceneObjectCount"),
         timing: document.getElementById("sceneTimingValue"),
+        candidateSummary: document.getElementById("sceneCandidateSummary"),
+        candidateList: document.getElementById("sceneCandidateList"),
         maskSummary: document.getElementById("sceneMaskSummary"),
         maskList: document.getElementById("sceneMaskList"),
         queueOverlay: document.getElementById("sceneQueueOverlay"),
+        generateCandidatesButton: document.getElementById("sceneGenerateCandidatesButton"),
         addMaskButton: document.getElementById("sceneAddMaskButton"),
         undoPointButton: document.getElementById("sceneUndoPointButton"),
         positiveModeButton: document.getElementById("scenePositiveModeButton"),
         negativeModeButton: document.getElementById("sceneNegativeModeButton"),
+        clearCandidatesButton: document.getElementById("sceneClearCandidatesButton"),
         submitButton: document.getElementById("sceneSubmitButton"),
         clearMasksButton: document.getElementById("sceneClearMasksButton"),
         resetButton: document.getElementById("sceneResetButton"),
@@ -1166,7 +1294,7 @@
             : "点击分割当前不可用，请准备 Segment Anything checkpoint，或手工上传 mask。";
           singleEls.clickHint.textContent = clickHintText;
           sceneEls.clickHint.textContent = appState.segmentationAvailable
-            ? "左键按当前模式添加提示点，右键可临时作为 negative point。确认当前 mask 后加入场景队列。"
+            ? "先生成候选实例并选择对象；没有候选时，再用正负点补 prompt mask。"
             : "点击分割当前不可用，请手工上传多个 mask。";
           alignmentEls.clickHint.textContent = clickHintText;
         } catch (error) {
@@ -1203,6 +1331,51 @@
           throw new Error(data.detail || "Failed to generate mask.");
         }
         return data;
+      }
+
+      async function requestAutoMasks(imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        const res = await fetch("/segment/auto", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed to generate candidate masks.");
+        }
+        return data;
+      }
+
+      function dataUrlFromBase64(base64) {
+        return `data:image/png;base64,${base64}`;
+      }
+
+      function loadImageElement(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Failed to load mask image."));
+          img.src = src;
+        });
+      }
+
+      async function buildMaskOverlay(maskSrc, rgba = [11, 124, 99, 156]) {
+        const img = await loadImageElement(maskSrc);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = imageData.data;
+        for (let index = 0; index < pixels.length; index += 4) {
+          const intensity = pixels[index];
+          const alpha = Math.round((intensity / 255) * rgba[3]);
+          pixels[index] = rgba[0];
+          pixels[index + 1] = rgba[1];
+          pixels[index + 2] = rgba[2];
+          pixels[index + 3] = alpha;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        return canvas.toDataURL("image/png");
       }
 
       function flattenArtifacts(value, prefix = "") {
@@ -1491,6 +1664,61 @@
         sceneEls.negativeModeButton.classList.toggle("active", mode === "negative");
       }
 
+      function getSceneCandidate(candidateId) {
+        return sceneState.candidateMasks.find((item) => item.candidateId === candidateId) || null;
+      }
+
+      function clearSceneActiveOverlay() {
+        sceneEls.activeMaskOverlay.removeAttribute("src");
+        sceneEls.activeMaskOverlay.classList.remove("visible");
+      }
+
+      async function ensureSceneOverlay(item) {
+        if (!item) {
+          return null;
+        }
+        if (item.overlayUrl) {
+          return item.overlayUrl;
+        }
+        if (!item.overlayPromise) {
+          item.overlayPromise = buildMaskOverlay(item.previewUrl)
+            .then((url) => {
+              item.overlayUrl = url;
+              return url;
+            })
+            .finally(() => {
+              item.overlayPromise = null;
+            });
+        }
+        return item.overlayPromise;
+      }
+
+      async function showSceneMaskPreview(item) {
+        if (!item) {
+          clearElementImage(sceneEls.maskPreview);
+          clearSceneActiveOverlay();
+          return;
+        }
+        sceneEls.maskPreview.src = item.previewUrl;
+        try {
+          const overlayUrl = await ensureSceneOverlay(item);
+          sceneEls.activeMaskOverlay.src = overlayUrl;
+          sceneEls.activeMaskOverlay.classList.add("visible");
+        } catch (error) {
+          clearSceneActiveOverlay();
+        }
+      }
+
+      async function focusSceneCandidate(candidateId) {
+        const candidate = getSceneCandidate(candidateId);
+        if (!candidate) {
+          return;
+        }
+        sceneState.activeCandidateId = candidateId;
+        await showSceneMaskPreview(candidate);
+        renderSceneCandidateList();
+      }
+
       function renderScenePromptPoints() {
         sceneEls.markerLayer.innerHTML = sceneState.promptPoints
           .map((point) => {
@@ -1507,33 +1735,82 @@
           .join("");
       }
 
+      function normalizeSceneCandidate(candidate) {
+        const dataUrl = dataUrlFromBase64(candidate.mask_png_base64);
+        return {
+          candidateId: candidate.candidate_id,
+          name: candidate.candidate_id,
+          source: "candidate",
+          previewUrl: dataUrl,
+          file: dataUrlToFile(dataUrl, `${candidate.candidate_id}.png`),
+          overlayUrl: null,
+          overlayPromise: null,
+          area: Number(candidate.area || 0),
+          coverage: Number(candidate.coverage || 0),
+          score: Number(candidate.score || 0),
+          predictedIou: Number(candidate.predicted_iou || 0),
+          stabilityScore: Number(candidate.stability_score || 0),
+          bbox: Array.isArray(candidate.bbox) ? candidate.bbox : [],
+          selected: false,
+        };
+      }
+
       function normalizeQueuedMask(file, metadata = {}) {
         return {
           file,
           name: file.name,
           source: metadata.source || "manual",
           pointCount: metadata.pointCount || 0,
+          candidateId: metadata.candidateId || null,
+          score: metadata.score || 0,
+          area: metadata.area || 0,
+          coverage: metadata.coverage || 0,
           previewUrl: URL.createObjectURL(file),
+          overlayUrl: metadata.overlayUrl || null,
         };
       }
 
       function revokeQueuedMask(item) {
-        if (item?.previewUrl) {
+        if (item?.previewUrl && item.previewUrl.startsWith("blob:")) {
           URL.revokeObjectURL(item.previewUrl);
         }
+      }
+
+      function syncSceneCandidateSelectionFromQueue() {
+        const selectedIds = new Set(
+          sceneState.queuedMasks
+            .map((item) => item.candidateId)
+            .filter((value) => Boolean(value))
+        );
+        sceneState.candidateMasks.forEach((candidate) => {
+          candidate.selected = selectedIds.has(candidate.candidateId);
+        });
       }
 
       function clearSceneQueuedMasks() {
         sceneState.queuedMasks.forEach((item) => revokeQueuedMask(item));
         sceneState.queuedMasks = [];
+        syncSceneCandidateSelectionFromQueue();
+      }
+
+      function clearSceneCandidates() {
+        sceneState.candidateMasks = [];
+        sceneState.activeCandidateId = null;
+        renderSceneCandidateList();
       }
 
       function resetScenePromptState({ keepMaskPreview = false } = {}) {
         sceneState.promptPoints = [];
         sceneState.currentGeneratedMaskFile = null;
+        sceneState.currentGeneratedMaskDataUrl = null;
         renderScenePromptPoints();
         if (!keepMaskPreview) {
-          clearElementImage(sceneEls.maskPreview);
+          if (sceneState.activeCandidateId) {
+            void focusSceneCandidate(sceneState.activeCandidateId);
+          } else {
+            clearElementImage(sceneEls.maskPreview);
+            clearSceneActiveOverlay();
+          }
         }
       }
 
@@ -1550,12 +1827,19 @@
         logMessage(sceneEls.statusLog, `${messagePrefix} from ${sceneState.promptPoints.length} point(s)...`);
         try {
           const data = await requestClickMask(sceneEls.imageInput.files[0], sceneState.promptPoints);
-          const dataUrl = `data:image/png;base64,${data.mask_png_base64}`;
-          sceneEls.maskPreview.src = dataUrl;
+          const dataUrl = dataUrlFromBase64(data.mask_png_base64);
+          sceneState.activeCandidateId = null;
+          sceneState.currentGeneratedMaskDataUrl = dataUrl;
           sceneState.currentGeneratedMaskFile = dataUrlToFile(
             dataUrl,
             `scene-generated-${sceneState.queuedMasks.length}.png`
           );
+          await showSceneMaskPreview({
+            previewUrl: dataUrl,
+            overlayUrl: null,
+            overlayPromise: null,
+          });
+          renderSceneCandidateList();
           logMessage(
             sceneEls.statusLog,
             `Current mask updated. score=${Number(data.score).toFixed(4)} point_count=${sceneState.promptPoints.length}`
@@ -1565,15 +1849,65 @@
         }
       }
 
+      function renderSceneCandidateList() {
+        const candidates = sceneState.candidateMasks || [];
+        if (!candidates.length) {
+          sceneEls.candidateSummary.textContent = "No candidates generated.";
+          sceneEls.candidateList.innerHTML = '<span class="muted">Generate candidates to inspect selectable objects.</span>';
+          return;
+        }
+        sceneEls.candidateSummary.textContent = `${candidates.length} candidate instance(s) ready.`;
+        sceneEls.candidateList.innerHTML = candidates
+          .map((item, index) => {
+            const isActive = sceneState.activeCandidateId === item.candidateId;
+            const selectedClass = item.selected ? " selected" : "";
+            const activeClass = isActive ? " active" : "";
+            return `
+              <div class="candidate-card${selectedClass}${activeClass}" data-index="${index}">
+                <img class="candidate-thumb" src="${item.previewUrl}" alt="Candidate ${index + 1}" />
+                <div class="candidate-copy">
+                  <strong>Candidate ${index + 1}</strong>
+                  <span>coverage ${(item.coverage * 100).toFixed(2)}%</span>
+                  <span>score ${Number(item.score).toFixed(4)} / iou ${Number(item.predictedIou).toFixed(4)}</span>
+                  <span>area ${item.area}</span>
+                </div>
+                <div class="candidate-actions">
+                  <button class="candidate-focus" type="button" data-index="${index}">Focus</button>
+                  <button class="candidate-toggle${item.selected ? " selected" : ""}" type="button" data-index="${index}">
+                    ${item.selected ? "Remove" : "Select"}
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
       function renderSceneMaskQueue() {
         if (!sceneState.queuedMasks.length) {
-          sceneEls.maskSummary.textContent = "No masks selected.";
-          sceneEls.maskList.innerHTML = '<span class="muted">Selected objects will appear on top of the image preview.</span>';
+          sceneEls.maskSummary.textContent = "No objects selected.";
+          sceneEls.maskList.innerHTML = '<span class="muted">Selected objects stay pinned on the image preview.</span>';
           sceneEls.queueOverlay.innerHTML = "";
           return;
         }
-        sceneEls.maskSummary.textContent = `${sceneState.queuedMasks.length} mask(s) queued for scene generation.`;
-        sceneEls.maskList.innerHTML = '<span class="muted">Selected objects are pinned on the image preview.</span>';
+        sceneEls.maskSummary.textContent = `${sceneState.queuedMasks.length} object(s) ready for scene generation.`;
+        sceneEls.maskList.innerHTML = sceneState.queuedMasks
+          .map((item, index) => {
+            const meta =
+              item.source === "candidate"
+                ? `candidate / coverage ${(Number(item.coverage || 0) * 100).toFixed(2)}%`
+                : item.source === "interactive"
+                  ? `prompt / points ${item.pointCount || 0}`
+                  : "manual";
+            return `
+              <div class="mask-chip">
+                <strong>Object ${index + 1}</strong>
+                <div class="muted">${meta}</div>
+                <button class="queue-remove" type="button" data-index="${index}">Remove</button>
+              </div>
+            `;
+          })
+          .join("");
         sceneEls.queueOverlay.innerHTML = sceneState.queuedMasks
           .map((item, index) => {
             const pointMeta =
@@ -1584,7 +1918,7 @@
               <div class="queue-thumb">
                 <img src="${item.previewUrl}" alt="Mask ${index}" />
                 <div>
-                  <strong>Mask ${index}</strong>
+                  <strong>Object ${index + 1}</strong>
                   <span>${item.source}</span>
                   ${pointMeta}
                 </div>
@@ -1595,15 +1929,54 @@
           .join("");
       }
 
+      async function toggleSceneCandidate(index) {
+        const candidate = sceneState.candidateMasks[index];
+        if (!candidate) {
+          return;
+        }
+        if (candidate.selected) {
+          const removeIndex = sceneState.queuedMasks.findIndex(
+            (item) => item.candidateId === candidate.candidateId
+          );
+          if (removeIndex >= 0) {
+            const [removed] = sceneState.queuedMasks.splice(removeIndex, 1);
+            revokeQueuedMask(removed);
+          }
+          candidate.selected = false;
+          renderSceneMaskQueue();
+          renderSceneCandidateList();
+          logMessage(sceneEls.statusLog, `Removed ${candidate.candidateId} from the selected object list.`);
+          return;
+        }
+        candidate.selected = true;
+        sceneState.queuedMasks = [
+          ...sceneState.queuedMasks,
+          normalizeQueuedMask(candidate.file, {
+            source: "candidate",
+            candidateId: candidate.candidateId,
+            score: candidate.score,
+            area: candidate.area,
+            coverage: candidate.coverage,
+            overlayUrl: candidate.overlayUrl,
+          }),
+        ];
+        renderSceneMaskQueue();
+        await focusSceneCandidate(candidate.candidateId);
+        logMessage(sceneEls.statusLog, `Selected ${candidate.candidateId} for scene generation.`);
+      }
+
       function resetSceneForm() {
         sceneEls.form.reset();
         clearElementImage(sceneEls.imagePreview);
         clearElementImage(sceneEls.maskPreview);
+        clearSceneActiveOverlay();
         resetScenePromptState();
         setScenePointMode("positive");
         clearSceneQueuedMasks();
+        clearSceneCandidates();
         sceneEls.maskInput.value = "";
         renderSceneMaskQueue();
+        renderSceneCandidateList();
         logMessage(sceneEls.statusLog, "Ready.");
         resetSceneResult();
         stopPolling(sceneState);
@@ -1718,9 +2091,12 @@
         setPreviewFromInput(sceneEls.imageInput, sceneEls.imagePreview);
         resetScenePromptState();
         clearSceneQueuedMasks();
+        clearSceneCandidates();
+        clearSceneActiveOverlay();
         sceneEls.maskInput.value = "";
         setScenePointMode("positive");
         renderSceneMaskQueue();
+        renderSceneCandidateList();
       });
 
       sceneEls.maskInput.addEventListener("change", () => {
@@ -1728,13 +2104,16 @@
         sceneState.queuedMasks = Array.from(sceneEls.maskInput.files || []).map((file) =>
           normalizeQueuedMask(file, { source: "manual" })
         );
+        syncSceneCandidateSelectionFromQueue();
         resetScenePromptState({ keepMaskPreview: false });
         if (sceneState.queuedMasks[0]) {
-          setPreviewFromFile(sceneState.queuedMasks[0].file, sceneEls.maskPreview);
+          showSceneMaskPreview(sceneState.queuedMasks[0]);
         } else {
           clearElementImage(sceneEls.maskPreview);
+          clearSceneActiveOverlay();
         }
         renderSceneMaskQueue();
+        renderSceneCandidateList();
         logMessage(sceneEls.statusLog, sceneState.queuedMasks.length ? `Loaded ${sceneState.queuedMasks.length} manual mask(s).` : "No manual masks loaded.");
       });
 
@@ -1768,9 +2147,47 @@
         );
       });
 
+      sceneEls.generateCandidatesButton.addEventListener("click", async () => {
+        if (!sceneEls.imageInput.files.length) {
+          logMessage(sceneEls.statusLog, "Please upload an image first.");
+          return;
+        }
+        if (!appState.segmentationAvailable) {
+          logMessage(sceneEls.statusLog, "Automatic candidate generation is not ready on the server.");
+          return;
+        }
+        sceneEls.generateCandidatesButton.disabled = true;
+        sceneEls.candidateSummary.textContent = "Generating candidates...";
+        logMessage(sceneEls.statusLog, "Generating instance candidates from the uploaded image...");
+        try {
+          const data = await requestAutoMasks(sceneEls.imageInput.files[0]);
+          sceneState.candidateMasks = (data.candidates || []).map((item) => normalizeSceneCandidate(item));
+          syncSceneCandidateSelectionFromQueue();
+          renderSceneCandidateList();
+          if (sceneState.candidateMasks[0]) {
+            await focusSceneCandidate(sceneState.candidateMasks[0].candidateId);
+          } else {
+            clearElementImage(sceneEls.maskPreview);
+            clearSceneActiveOverlay();
+          }
+          logMessage(
+            sceneEls.statusLog,
+            sceneState.candidateMasks.length
+              ? `Generated ${sceneState.candidateMasks.length} candidate instance(s).`
+              : "No candidate instances were produced. Use prompt points or upload masks manually."
+          );
+        } catch (error) {
+          sceneState.candidateMasks = [];
+          renderSceneCandidateList();
+          logMessage(sceneEls.statusLog, String(error));
+        } finally {
+          sceneEls.generateCandidatesButton.disabled = false;
+        }
+      });
+
       sceneEls.addMaskButton.addEventListener("click", () => {
         if (!sceneState.currentGeneratedMaskFile) {
-          logMessage(sceneEls.statusLog, "Generate a mask first, or upload masks manually.");
+          logMessage(sceneEls.statusLog, "Create a prompt mask first, or select a candidate directly.");
           return;
         }
         const suffix = String(sceneState.queuedMasks.length).padStart(3, "0");
@@ -1784,9 +2201,10 @@
             pointCount: sceneState.promptPoints.length,
           }),
         ];
+        syncSceneCandidateSelectionFromQueue();
         resetScenePromptState();
         renderSceneMaskQueue();
-        logMessage(sceneEls.statusLog, `Added mask ${suffix} to the scene queue.`);
+        logMessage(sceneEls.statusLog, `Added prompt mask ${suffix} to the selected object list.`);
       });
 
       sceneEls.undoPointButton.addEventListener("click", async () => {
@@ -1801,6 +2219,15 @@
 
       sceneEls.positiveModeButton.addEventListener("click", () => setScenePointMode("positive"));
       sceneEls.negativeModeButton.addEventListener("click", () => setScenePointMode("negative"));
+      sceneEls.clearCandidatesButton.addEventListener("click", () => {
+        sceneState.activeCandidateId = null;
+        clearSceneCandidates();
+        if (!sceneState.currentGeneratedMaskDataUrl) {
+          clearElementImage(sceneEls.maskPreview);
+          clearSceneActiveOverlay();
+        }
+        logMessage(sceneEls.statusLog, "Candidate instance list cleared.");
+      });
 
       function handleSceneQueueRemove(event) {
         const button = event.target.closest(".queue-remove");
@@ -1813,12 +2240,49 @@
         }
         const [removed] = sceneState.queuedMasks.splice(index, 1);
         revokeQueuedMask(removed);
+        syncSceneCandidateSelectionFromQueue();
         renderSceneMaskQueue();
+        renderSceneCandidateList();
         logMessage(sceneEls.statusLog, `Removed ${removed?.name || `mask ${index}`}.`);
+      }
+
+      async function handleSceneCandidateAction(event) {
+        const focusButton = event.target.closest(".candidate-focus");
+        if (focusButton) {
+          const index = Number(focusButton.dataset.index);
+          const candidate = sceneState.candidateMasks[index];
+          if (candidate) {
+            await focusSceneCandidate(candidate.candidateId);
+            logMessage(sceneEls.statusLog, `Focused ${candidate.candidateId}.`);
+          }
+          return;
+        }
+        const toggleButton = event.target.closest(".candidate-toggle");
+        if (toggleButton) {
+          const index = Number(toggleButton.dataset.index);
+          if (Number.isInteger(index)) {
+            await toggleSceneCandidate(index);
+          }
+          return;
+        }
+        const card = event.target.closest(".candidate-card");
+        if (!card) {
+          return;
+        }
+        const index = Number(card.dataset.index);
+        const candidate = sceneState.candidateMasks[index];
+        if (!candidate) {
+          return;
+        }
+        await focusSceneCandidate(candidate.candidateId);
+        logMessage(sceneEls.statusLog, `Focused ${candidate.candidateId}.`);
       }
 
       sceneEls.maskList.addEventListener("click", handleSceneQueueRemove);
       sceneEls.queueOverlay.addEventListener("click", handleSceneQueueRemove);
+      sceneEls.candidateList.addEventListener("click", (event) => {
+        void handleSceneCandidateAction(event);
+      });
 
       sceneEls.form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -1827,7 +2291,7 @@
           return;
         }
         if (!sceneState.queuedMasks.length) {
-          logMessage(sceneEls.statusLog, "Add at least one mask to the scene queue.");
+          logMessage(sceneEls.statusLog, "Select at least one object before submitting the scene job.");
           return;
         }
 
@@ -1862,7 +2326,8 @@
         clearSceneQueuedMasks();
         sceneEls.maskInput.value = "";
         renderSceneMaskQueue();
-        logMessage(sceneEls.statusLog, "Scene mask queue cleared.");
+        renderSceneCandidateList();
+        logMessage(sceneEls.statusLog, "Selected object list cleared.");
       });
       sceneEls.resetButton.addEventListener("click", resetSceneForm);
 

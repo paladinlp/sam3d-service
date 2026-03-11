@@ -68,12 +68,18 @@ You can override it with:
 - `SAM3D_SUPERSPLAT_COMMAND`: CLI used to generate the viewer (default: `npx -y @playcanvas/splat-transform@1.8.0`)
 - `SAM3D_HOST`: service bind address (default: `0.0.0.0`)
 - `SAM3D_PORT`: service port (default: `8000`)
+- `SAM3D_SEGMENT_AUTO_POINTS_PER_SIDE`: SAM automatic mask sampling density (default: `24`)
+- `SAM3D_SEGMENT_AUTO_MAX_CANDIDATES`: max automatic scene candidates returned to the web UI (default: `18`)
+- `SAM3D_SEGMENT_AUTO_MIN_AREA_RATIO`: drop tiny masks below this image coverage ratio (default: `0.003`)
+- `SAM3D_SEGMENT_AUTO_MAX_AREA_RATIO`: drop giant background masks above this image coverage ratio (default: `0.6`)
+- `SAM3D_SEGMENT_AUTO_DEDUP_IOU`: suppress near-duplicate automatic candidates above this IoU (default: `0.9`)
 
 ## API
 
 - `GET /` web UI
 - `GET /healthz`
 - `POST /segment/click`
+- `POST /segment/auto`
 - `POST /jobs`
 - `POST /scene-jobs`
 - `POST /alignment-jobs`
@@ -93,6 +99,12 @@ You can override it with:
 - `x`: click x coordinate in original image pixels
 - `y`: click y coordinate in original image pixels
 - `label`: optional point label, default `1`
+
+`POST /segment/auto` expects `multipart/form-data` with:
+
+- `image`: RGB image file
+
+It returns a filtered list of candidate instance masks for the scene workflow.
 
 `POST /scene-jobs` expects `multipart/form-data` with:
 
@@ -133,7 +145,7 @@ The page lets you:
 - run the multi-object scene flow from `demo_multi_object.ipynb`
 - run the 3DB mesh alignment flow from `demo_3db_mesh_alignment.ipynb`
 - click a foreground object to generate a mask when Segment Anything is ready
-- refine scene masks with positive and negative point prompts, then confirm or remove queued objects
+- generate multiple automatic scene candidates, select the objects to keep, and use positive/negative points only for missing objects or mask refinement
 - inspect the notebook-style server-rendered GIF and MP4 preview for single and scene jobs
 - monitor per-job progress and stage updates while gaussian inference is running
 - open a separate PlayCanvas Gaussian viewer for single and scene jobs

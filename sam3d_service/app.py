@@ -21,6 +21,7 @@ from sam3d_service.runner import InferenceRunner
 from sam3d_service.segmenter import ClickSegmenter
 from sam3d_service.supersplat_viewer import ensure_supersplat_controls
 from sam3d_service.schemas import (
+    AutoSegmentationResponse,
     ClickSegmentationResponse,
     HealthResponse,
     JobCreateResponse,
@@ -132,6 +133,24 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return ClickSegmentationResponse(**payload)
+
+    @app.post("/segment/auto", response_model=AutoSegmentationResponse)
+    async def segment_auto(
+        request: Request,
+        image: UploadFile = File(...),
+    ) -> AutoSegmentationResponse:
+        image_bytes, _ = await _load_image_upload(image)
+        segmenter: ClickSegmenter = request.app.state.segmenter
+        try:
+            payload = await asyncio.to_thread(
+                segmenter.generate_mask_candidates_from_bytes,
+                image_bytes,
+            )
+        except (FileNotFoundError, RuntimeError) as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return AutoSegmentationResponse(**payload)
 
     @app.post("/jobs", response_model=JobCreateResponse)
     async def create_job(

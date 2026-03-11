@@ -67,3 +67,21 @@ class ClickSegmentationResponse(BaseModel):
     width: int
     height: int
     mask_png_base64: str
+
+
+class AutoMaskCandidate(BaseModel):
+    candidate_id: str
+    area: int
+    coverage: float
+    score: float
+    predicted_iou: float
+    stability_score: float
+    bbox: List[int] = Field(default_factory=list)
+    mask_png_base64: str
+
+
+class AutoSegmentationResponse(BaseModel):
+    width: int
+    height: int
+    candidate_count: int
+    candidates: List[AutoMaskCandidate] = Field(default_factory=list)
