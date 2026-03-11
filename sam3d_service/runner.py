@@ -24,6 +24,7 @@ from sam3d_service.storage import (
     JOB_KIND_ALIGNMENT,
     JOB_KIND_SCENE,
     JOB_KIND_SINGLE,
+    POSED_RESULT_PLY_NAME,
     PREVIEW_GIF_NAME,
     PREVIEW_PLY_NAME,
     PREVIEW_VIDEO_NAME,
@@ -105,7 +106,7 @@ class InferenceRunner:
         seed: int,
         progress_callback: ProgressCallback | None = None,
     ) -> dict[str, Any]:
-        if self._inference is None:
+        if self._inference is None or self._make_scene is None:
             raise RuntimeError("Model is not loaded.")
 
         self._emit_progress(
@@ -153,8 +154,10 @@ class InferenceRunner:
             message="Writing gaussian and preview files.",
         )
         output["gs"].save_ply(str(job_dir / RESULT_PLY_NAME))
+        scene_gs = self._make_scene(output)
+        scene_gs.save_ply(str(job_dir / POSED_RESULT_PLY_NAME))
         preview_artifact = self._maybe_create_preview(
-            job_dir / RESULT_PLY_NAME,
+            job_dir / POSED_RESULT_PLY_NAME,
             job_dir / PREVIEW_PLY_NAME,
         )
         self._emit_progress(
@@ -164,7 +167,7 @@ class InferenceRunner:
             message="Packaging PlayCanvas Gaussian viewer.",
         )
         viewer_artifacts = self._maybe_create_supersplat_viewer(
-            source_path=job_dir / RESULT_PLY_NAME,
+            source_path=job_dir / POSED_RESULT_PLY_NAME,
             job_dir=job_dir,
         )
         self._emit_progress(

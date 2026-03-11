@@ -16,6 +16,7 @@ INPUT_MASK_NAME = "mask.png"
 INPUT_MESH_NAME = "input_mesh.ply"
 FOCAL_LENGTH_JSON_NAME = "focal_length.json"
 RESULT_PLY_NAME = "result.ply"
+POSED_RESULT_PLY_NAME = "posed_result.ply"
 PREVIEW_PLY_NAME = "preview.ply"
 PREVIEW_GIF_NAME = "preview.gif"
 PREVIEW_VIDEO_NAME = "preview.mp4"
@@ -155,6 +156,7 @@ class JobStore:
             "mesh": job_dir / INPUT_MESH_NAME,
             "focal_length_json": job_dir / FOCAL_LENGTH_JSON_NAME,
             "result_ply": job_dir / RESULT_PLY_NAME,
+            "posed_result_ply": job_dir / POSED_RESULT_PLY_NAME,
             "preview_ply": job_dir / PREVIEW_PLY_NAME,
             "preview_gif": job_dir / PREVIEW_GIF_NAME,
             "preview_video": job_dir / PREVIEW_VIDEO_NAME,
