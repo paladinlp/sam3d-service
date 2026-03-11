@@ -91,6 +91,11 @@ def ensure_supersplat_controls(html_path: Path) -> None:
 
     snippet = """
         <style>
+            #application-canvas {
+                transform: scaleY(-1);
+                transform-origin: center center;
+            }
+
             #sam3d-auto-rotate-wrap {
                 position: fixed;
                 right: 18px;
