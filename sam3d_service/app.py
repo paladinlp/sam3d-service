@@ -4,6 +4,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import io
 import json
+import mimetypes
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -350,7 +351,7 @@ def create_app() -> FastAPI:
                 supersplat_name = None
             else:
                 return RedirectResponse(
-                    url=str(request.url_for("download_artifact", job_id=job_id, name=supersplat_name)),
+                    url=str(request.url_for("preview_artifact", job_id=job_id, name=supersplat_name)),
                     status_code=307,
                 )
 
@@ -411,6 +412,30 @@ def create_app() -> FastAPI:
         except JobNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return FileResponse(path=artifact_path, filename=Path(name).name)
+
+    @app.get("/jobs/{job_id}/preview-assets/{name}", name="preview_artifact")
+    async def preview_artifact(job_id: str, name: str, request: Request) -> FileResponse:
+        store: JobStore = request.app.state.store
+        try:
+            payload = store.read_job(job_id)
+        except JobNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        result_payload = payload.get("result")
+        if payload.get("status") != "succeeded" or not isinstance(result_payload, dict):
+            raise HTTPException(status_code=404, detail="Preview assets are not ready.")
+
+        allowed = _supersplat_artifact_set(result_payload)
+        if name not in allowed:
+            raise HTTPException(status_code=404, detail=f"Preview artifact not found: {name}")
+
+        try:
+            artifact_path = store.artifact_path(job_id, name)
+        except JobNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        media_type, _ = mimetypes.guess_type(name)
+        return FileResponse(path=artifact_path, media_type=media_type)
 
     return app
 
@@ -485,6 +510,18 @@ def _supersplat_artifact_name(result_payload: dict[str, Any]) -> str | None:
     if isinstance(artifact_payload, dict):
         return artifact_payload.get("supersplat_html")
     return None
+
+
+def _supersplat_artifact_set(result_payload: dict[str, Any]) -> set[str]:
+    artifact_payload = result_payload.get("artifacts", {})
+    if not isinstance(artifact_payload, dict):
+        return set()
+    allowed: set[str] = set()
+    for key in ("supersplat_html", "supersplat_sog", "supersplat_js", "supersplat_css"):
+        name = artifact_payload.get(key)
+        if isinstance(name, str) and name:
+            allowed.add(name)
+    return allowed
 
 
 def _preview_artifact_name(result_payload: dict[str, Any]) -> str | None:
