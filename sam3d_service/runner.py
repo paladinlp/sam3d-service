@@ -269,6 +269,17 @@ class InferenceRunner:
                 outputs.append(output)
             self._emit_progress(
                 progress_callback,
+                progress=60,
+                stage="anchoring_plane",
+                message="Anchoring selected objects back onto a shared support plane.",
+            )
+            self._anchor_scene_outputs_to_support_plane(
+                outputs=outputs,
+                mask_paths=mask_paths,
+                shared_pointmap=shared_pointmap,
+            )
+            self._emit_progress(
+                progress_callback,
                 progress=62,
                 stage="assembling_scene",
                 message="Merging object gaussians into one scene.",
@@ -555,6 +566,173 @@ class InferenceRunner:
             return output_path
         except Exception:
             return None
+
+    def _anchor_scene_outputs_to_support_plane(
+        self,
+        *,
+        outputs: list[dict[str, Any]],
+        mask_paths: list[Path],
+        shared_pointmap: Any | None,
+    ) -> None:
+        if not outputs or shared_pointmap is None:
+            return
+
+        pointmap_np = self._pointmap_to_numpy(shared_pointmap)
+        if pointmap_np is None:
+            return
+
+        contact_points = []
+        masks = []
+        for mask_path in mask_paths:
+            mask = np.array(Image.open(mask_path).convert("L"), dtype=np.uint8) > 0
+            masks.append(mask)
+            contact = self._extract_mask_contact_points(pointmap_np, mask)
+            if contact.size:
+                contact_points.append(contact)
+
+        if not contact_points:
+            return
+
+        stacked_contact_points = np.concatenate(contact_points, axis=0)
+        plane = self._fit_support_plane(stacked_contact_points)
+        support_height = float(np.nanmedian(stacked_contact_points[:, 1]))
+
+        for output in outputs:
+            if plane is not None:
+                applied = self._anchor_output_to_plane(output, plane)
+                if applied:
+                    continue
+            self._anchor_output_to_height(output, support_height)
+
+    @staticmethod
+    def _pointmap_to_numpy(pointmap: Any) -> np.ndarray | None:
+        if pointmap is None:
+            return None
+        if hasattr(pointmap, "detach"):
+            pointmap = pointmap.detach().cpu().numpy()
+        else:
+            pointmap = np.asarray(pointmap)
+        if pointmap.ndim != 3 or pointmap.shape[-1] != 3:
+            return None
+        if not np.isfinite(pointmap).any():
+            return None
+        return pointmap
+
+    @staticmethod
+    def _extract_mask_contact_points(pointmap: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        if mask.shape != pointmap.shape[:2]:
+            return np.empty((0, 3), dtype=np.float32)
+
+        contact_points = []
+        xs = np.where(mask.any(axis=0))[0]
+        for x in xs:
+            ys = np.where(mask[:, x])[0]
+            if ys.size == 0:
+                continue
+            bottom_y = int(ys.max())
+            top_y = max(int(ys.max() - 3), int(ys.min()))
+            for y in range(bottom_y, top_y - 1, -1):
+                point = pointmap[y, x]
+                if np.isfinite(point).all():
+                    contact_points.append(point)
+                    break
+        if not contact_points:
+            return np.empty((0, 3), dtype=np.float32)
+        return np.asarray(contact_points, dtype=np.float32)
+
+    @staticmethod
+    def _fit_support_plane(points: np.ndarray) -> tuple[np.ndarray, float] | None:
+        if points.shape[0] < 8:
+            return None
+        center = np.nanmedian(points, axis=0)
+        centered = points - center
+        centered = centered[np.all(np.isfinite(centered), axis=1)]
+        if centered.shape[0] < 8:
+            return None
+        try:
+            _, _, vh = np.linalg.svd(centered, full_matrices=False)
+        except np.linalg.LinAlgError:
+            return None
+        normal = vh[-1]
+        normal_norm = np.linalg.norm(normal)
+        if normal_norm < 1e-6:
+            return None
+        normal = normal / normal_norm
+        if normal[1] < 0:
+            normal = -normal
+        # Reject near-vertical planes; fallback to shared height anchoring instead.
+        if abs(normal[1]) < 0.35:
+            return None
+        offset = -float(np.dot(normal, center))
+        return normal.astype(np.float32), offset
+
+    def _anchor_output_to_plane(
+        self,
+        output: dict[str, Any],
+        plane: tuple[np.ndarray, float],
+    ) -> bool:
+        import torch
+
+        normal_np, offset = plane
+        scene_points = self._transform_output_points_to_scene(output)
+        if scene_points is None or scene_points.shape[0] == 0:
+            return False
+        normal = torch.tensor(
+            normal_np,
+            dtype=scene_points.dtype,
+            device=scene_points.device,
+        )
+        distances = scene_points @ normal + float(offset)
+        if distances.numel() == 0:
+            return False
+        bottom_distance = torch.quantile(distances, 0.02)
+        output["translation"] = output["translation"] - normal.unsqueeze(0) * bottom_distance
+        return True
+
+    @staticmethod
+    def _anchor_output_to_height(output: dict[str, Any], support_height: float) -> None:
+        scene_points = InferenceRunner._transform_output_points_to_scene(output)
+        if scene_points is None or scene_points.shape[0] == 0:
+            return
+        import torch
+
+        bottom_height = torch.quantile(scene_points[:, 1], 0.02)
+        output["translation"] = output["translation"].clone()
+        output["translation"][0, 1] += support_height - float(bottom_height.detach().cpu())
+
+    @staticmethod
+    def _transform_output_points_to_scene(output: dict[str, Any]) -> Any | None:
+        import torch
+
+        gaussian = output.get("gaussian")
+        rotation = output.get("rotation")
+        translation = output.get("translation")
+        scale = output.get("scale")
+        if (
+            gaussian is None
+            or rotation is None
+            or translation is None
+            or scale is None
+            or not gaussian
+        ):
+            return None
+        xyz_local = gaussian[0].get_xyz
+        if xyz_local is None or xyz_local.numel() == 0:
+            return None
+        quat = rotation.reshape(-1, 4)[0]
+        quat = quat / torch.clamp(torch.linalg.norm(quat), min=1e-8)
+        qw, qx, qy, qz = quat.unbind()
+        rotation_matrix = torch.stack(
+            [
+                torch.stack([1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy - qz * qw), 2 * (qx * qz + qy * qw)]),
+                torch.stack([2 * (qx * qy + qz * qw), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz - qx * qw)]),
+                torch.stack([2 * (qx * qz - qy * qw), 2 * (qy * qz + qx * qw), 1 - 2 * (qx * qx + qy * qy)]),
+            ],
+            dim=0,
+        ).to(dtype=xyz_local.dtype, device=xyz_local.device)
+        scaled_xyz = xyz_local * scale.reshape(-1, 3)[0]
+        rotated_xyz = scaled_xyz @ rotation_matrix.transpose(0, 1)
+        return rotated_xyz + translation.reshape(-1, 3)[0]
 
     def _compute_shared_pointmap(self, image: np.ndarray) -> Any | None:
         pipeline = getattr(self._inference, "_pipeline", None)
